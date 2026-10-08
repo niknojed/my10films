@@ -397,16 +397,31 @@
   }
 
   /* most picked and shared list */
+  /* Phones: one swipeable row, with part of the next card showing. Wide screens: a grid. */
   .picked {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
-    gap: 1rem 0.75rem;
+    display: flex;
+    gap: 0.75rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    padding-bottom: 0.5rem;
   }
   .picked li {
     display: grid;
     gap: 0.375rem;
     min-width: 0;
     align-content: start;
+    flex: 0 0 7rem;
+    scroll-snap-align: start;
+  }
+  @media (min-width: 64rem) {
+    .picked {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+      gap: 1rem 0.75rem;
+      overflow: visible;
+      padding-bottom: 0;
+    }
   }
   .shared-grid {
     display: grid;

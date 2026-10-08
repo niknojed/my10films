@@ -61,8 +61,10 @@ export default function Maker({ mostPicked }: { mostPicked: PickedFilm[] }) {
   const focusSearch = useCallback(() => searchRef.current?.focus(), []);
 
   return (
-    <div className="grid min-w-0 gap-9 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-14">
-      <section className="grid min-w-0 content-start gap-6" aria-label="Build your list">
+    // Phones read top to bottom: build, poster, then Most picked to browse. On wide screens Most picked
+    // sits under the list while the poster spans both rows on the right.
+    <div className="grid min-w-0 gap-9 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-x-14 lg:gap-y-6">
+      <section className="grid min-w-0 content-start gap-6 lg:col-start-1 lg:row-start-1" aria-label="Build your list">
         <div className="grid gap-3">
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
             <h2 className="h-sec">Pick</h2>
@@ -115,38 +117,40 @@ export default function Maker({ mostPicked }: { mostPicked: PickedFilm[] }) {
           </p>
           <Board picks={state.picks} onMove={move} onRemove={remove} onEmptySlot={focusSearch} announce={announce} />
         </div>
-
-        {mostPicked.length > 0 ? (
-          <div className="grid gap-3 border-t border-line pt-6">
-            <h2 className="h-sec">Most picked</h2>
-            <p className="hint">Films that appear on the most shared lists, counted once per person.</p>
-            <ul className="picked">
-              {mostPicked.map((film) => {
-                const on = pickedIds.has(film.id);
-                return (
-                  <li key={film.id}>
-                    <Art film={film} size="w185" />
-                    <p className="cap">
-                      {film.title} <span>{film.picks}</span>
-                    </p>
-                    <button
-                      type="button"
-                      className="btn min-h-11 text-sm"
-                      disabled={on || full}
-                      aria-label={on ? `${film.title} is on your list` : `Add ${film.title}`}
-                      onClick={() => add(film)}
-                    >
-                      {on ? "Added" : "Add"}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ) : null}
       </section>
 
       <PosterPanel state={state} dispatch={dispatch} art={art} />
+      {mostPicked.length > 0 ? (
+        <section
+          className="grid min-w-0 gap-3 border-t border-line pt-6 lg:col-start-1 lg:row-start-2"
+          aria-label="Most picked"
+        >
+          <h2 className="h-sec">Most picked</h2>
+          <p className="hint">Films that appear on the most shared lists, counted once per person.</p>
+          <ul className="picked">
+            {mostPicked.map((film) => {
+              const on = pickedIds.has(film.id);
+              return (
+                <li key={film.id}>
+                  <Art film={film} size="w185" />
+                  <p className="cap">
+                    {film.title} <span>{film.picks}</span>
+                  </p>
+                  <button
+                    type="button"
+                    className="btn min-h-11 text-sm"
+                    disabled={on || full}
+                    aria-label={on ? `${film.title} is on your list` : `Add ${film.title}`}
+                    onClick={() => add(film)}
+                  >
+                    {on ? "Added" : "Add"}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
       <p className="sr-only" aria-live="polite">
         {live}
       </p>

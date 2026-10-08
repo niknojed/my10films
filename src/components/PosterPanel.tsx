@@ -193,7 +193,10 @@ export default function PosterPanel({ state, dispatch, art }: Props) {
       : `Poster preview listing ${state.picks.map((p, i) => `${i + 1}. ${p.title}`).join(", ")}`;
 
   return (
-    <aside className="grid content-start gap-6 min-w-0 lg:sticky lg:top-4" aria-label="Poster">
+    <aside
+      className="grid content-start gap-6 min-w-0 lg:sticky lg:top-4 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start"
+      aria-label="Poster"
+    >
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
         <h2 className="h-sec">Poster</h2>
         <p className="mono text-mute">
