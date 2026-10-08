@@ -27,7 +27,7 @@ npm run build
 - `src/lib/poster.ts`: canvas renderer. Layouts: feed + top billing = no. 1 large beside a 3×3; feed + equal = 5×2; story + top = no. 1 half-width, 2×2 beside it, a row of 5 below; story + equal = rows of 3, 3, 4. Films with no TMDB poster get a generated title card.
 - `src/lib/useArt.ts`: loads poster images for canvas. Direct from TMDB with CORS first, then the `/api/img` same-origin pass-through.
 - `src/app/api/search`: TMDB search proxy. The token stays on the server.
-- `src/app/api/lists`: POST, saves a shared list. Checks same origin, caps the body at 4 KB, and re-fetches every film from TMDB by id, so film data never comes from the browser. Calls the `create_list` RPC.
+- `src/app/api/lists`: POST, saves a shared list. Checks same origin, caps the body at 4 KB, and checks every film id against TMDB before saving. Calls the `create_list` RPC.
 - `src/app/api/img`: poster pass-through. Validates path and size and stores nothing.
 - `src/app/l/[slug]`: shared list page (`noindex`) plus `opengraph-image.tsx`, which reads fonts from `assets/`.
 - `src/app/about`, `src/app/privacy`: credits with the TMDB notice and logo (`public/tmdb.svg`), takedown contact, privacy.
@@ -35,6 +35,8 @@ npm run build
 - `supabase/migrations/0001_init.sql`: `lists` and `list_films` tables. RLS is on with no policies, so only the service role can read or write. Two RPCs:
   - `create_list`: atomic save. A repeat of the same list by the same person returns its existing slug. 10 saves an hour per hashed IP.
   - `most_picked`: counts distinct people per film.
+- `supabase/migrations/0002_store_ids_only.sql`: `list_films` keeps only `tmdb_id` and `position`. `most_picked` returns `(tmdb_id, picks)`.
+- `filmsById` in `src/lib/server.ts`: share pages, preview images and Most picked fetch titles, years and posters from TMDB by id, through `getFilm`'s 1-day fetch cache. A film TMDB has removed shows as a "No longer listed" title card on share pages and is dropped from Most picked.
 
 ## Decisions already made
 
@@ -44,6 +46,7 @@ npm run build
 - **Ten films, with two layouts:** top billing and equal billing.
 - **Most picked stays hidden** until at least 10 films have real counts (`MOST_PICKED_MIN`). No seeded data.
 - **Privacy:** IP addresses are stored only as an HMAC hash using `HASH_SALT`.
+- **TMDB terms (checked 2026-10-08):** section 1.C forbids caching TMDB data for more than 6 months, so the database stores TMDB ids only. Never add title, year or poster columns back. The same section bans "derivatives" of TMDB content. The poster export may count as one under a strict reading. The decision was to proceed as is.
 - **Dependencies:** `package.json` overrides Next's bundled postcss to 8.5.x to clear audit advisories without moving to Next 16. Remove the override when upgrading Next.
 
 ## Hosting
@@ -54,7 +57,7 @@ npm run build
 - `NEXT_PUBLIC_SITE_URL` is required in production. Behind the proxy the app doesn't see `my10films.com` as its own host, so the save route's same-origin check passes only through this value. Without it every save returns 403.
 - A malformed `SUPABASE_URL` is treated as unconfigured and logged once, so the build doesn't fail. Check build logs for `SUPABASE_URL is not an http(s) URL`.
 - Proxy headers, checked live on 2026-10-08: Hostinger overwrites `x-real-ip` with the real client address. It keeps a client-sent `x-forwarded-for` value at the front and appends the real address. `clientIp` reads `x-real-ip`, then the last `x-forwarded-for` entry. Never the first.
-- Supabase: `0001_init.sql` has been run on the production project.
+- Supabase: `0001_init.sql` has been run on the production project. Migrations are run by hand in the SQL editor, after the code that needs them has deployed.
 
 ## Verification status
 
@@ -64,8 +67,7 @@ npm run build
 
 ## Next steps
 
-1. **TMDB API terms:** confirm the caching and image rules. Current caching is 1 hour for search and 1 day for film records.
-2. **Most picked:** check it once 10+ films have real counts.
+1. **Most picked:** check it once 10+ films have real counts.
 
 ## Known gaps
 

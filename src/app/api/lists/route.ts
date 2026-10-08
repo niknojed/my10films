@@ -50,7 +50,8 @@ export async function POST(req: NextRequest) {
     return fail(503, "not_configured", "Share links are not set up on this server yet.");
   }
 
-  // Titles, years and posters come from TMDB by id. Nothing the browser sends is stored as film data.
+  // Every id is checked against TMDB before saving. Only ids and positions are stored; pages that show
+  // a list fetch titles, years and posters from TMDB again (see filmsById in lib/server.ts).
   let films: Film[];
   try {
     films = await Promise.all(input.filmIds.map((id) => getFilm(id)));
