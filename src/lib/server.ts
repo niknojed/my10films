@@ -8,13 +8,35 @@ import { isSlug } from "./validate";
 
 let client: SupabaseClient | null = null;
 
-/** Returns null when Supabase is not configured, so the maker still works without it. */
+let badUrlLogged = false;
+
+/**
+ * Returns null when Supabase is not configured, so the maker still works without it.
+ * A malformed SUPABASE_URL is treated as unconfigured and logged once, instead of
+ * throwing during prerender and failing the whole build.
+ */
 export function db(): SupabaseClient | null {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const url = process.env.SUPABASE_URL?.trim();
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   if (!url || !key) return null;
+  if (!isHttpUrl(url)) {
+    if (!badUrlLogged) {
+      console.error("SUPABASE_URL is not an http(s) URL. Expected https://<project-ref>.supabase.co");
+      badUrlLogged = true;
+    }
+    return null;
+  }
   client ??= createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
   return client;
+}
+
+function isHttpUrl(value: string): boolean {
+  try {
+    const { protocol } = new URL(value);
+    return protocol === "https:" || protocol === "http:";
+  } catch {
+    return false;
+  }
 }
 
 const ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
