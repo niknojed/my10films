@@ -1,10 +1,11 @@
 # My 10 Films
 
-A site where people pick the ten films that made them, rank them, and save one poster for a feed (1800 × 2100) or Story (1080 × 1920). It's a film version of my9albums.org. Working name "My 10 Films", set in `src/lib/config.ts` (`SITE_NAME`).
+A site where people pick the ten films that made them, rank them, and save one poster for a feed (1800 × 2100) or Story (1080 × 1920). It's a film version of my9albums.org. Live at https://my10films.com. The name "My 10 Films" is set in `src/lib/config.ts` (`SITE_NAME`).
 
 - Repo: github.com/niknojed/my10films (public), branch `main`
 - Local: `~/Sites/my10films`
-- Stack: Next.js 15 (App Router), React 19, Tailwind 4, Supabase, TMDB API, Vitest
+- Stack: Next.js 15 (App Router), React 19, Tailwind 4, Supabase, TMDB API, Vitest 5
+- Node 22 everywhere. Locally it comes from Homebrew `node@22`, put first on PATH in `~/.zshrc`. Vitest 5 won't run on Node 20.
 
 ## Commands
 
@@ -12,7 +13,7 @@ A site where people pick the ten films that made them, rank them, and save one p
 npm install
 npm run dev
 npm run typecheck
-npm test        # 22 unit tests: validation, poster grids, list state
+npm test        # 25 unit tests: validation, poster grids, list state, client IP
 npm run build
 ```
 
@@ -20,7 +21,7 @@ npm run build
 
 - `src/app/page.tsx`: home. Server-fetches Most picked, renders `<Maker>`.
 - `src/components/Maker.tsx`: client shell. `useReducer` state, persisted to `localStorage` (`my10films.v1`), cross-tab sync.
-- `src/components/Search.tsx`: debounced search against `/api/search`, keyboard navigation, error and retry states.
+- `src/components/Search.tsx`: debounced search against `/api/search`, keyboard navigation, error and retry states. Enter pressed before results arrive is held and applied when results for that exact query land.
 - `src/components/Board.tsx`: ranked slots. Pointer drag (whole card with a mouse, grip on touch), arrow buttons, focus kept after moves, live-region announcements.
 - `src/components/PosterPanel.tsx`: canvas preview, format, layout and theme controls, PNG export (share sheet on touch, download elsewhere), share-link creation.
 - `src/lib/poster.ts`: canvas renderer. Layouts: feed + top billing = no. 1 large beside a 3×3; feed + equal = 5×2; story + top = no. 1 half-width, 2×2 beside it, a row of 5 below; story + equal = rows of 3, 3, 4. Films with no TMDB poster get a generated title card.
@@ -29,7 +30,8 @@ npm run build
 - `src/app/api/lists`: POST, saves a shared list. Checks same origin, caps the body at 4 KB, and re-fetches every film from TMDB by id, so film data never comes from the browser. Calls the `create_list` RPC.
 - `src/app/api/img`: poster pass-through. Validates path and size and stores nothing.
 - `src/app/l/[slug]`: shared list page (`noindex`) plus `opengraph-image.tsx`, which reads fonts from `assets/`.
-- `src/app/about`, `src/app/privacy`: credits with the TMDB notice, takedown contact, privacy.
+- `src/app/about`, `src/app/privacy`: credits with the TMDB notice and logo (`public/tmdb.svg`), takedown contact, privacy.
+- `src/lib/ip.ts`: client address for IP hashing. See Hosting below for why it reads `x-real-ip`.
 - `supabase/migrations/0001_init.sql`: `lists` and `list_films` tables. RLS is on with no policies, so only the service role can read or write. Two RPCs:
   - `create_list`: atomic save. A repeat of the same list by the same person returns its existing slug. 10 saves an hour per hashed IP.
   - `most_picked`: counts distinct people per film.
@@ -42,43 +44,34 @@ npm run build
 - **Ten films, with two layouts:** top billing and equal billing.
 - **Most picked stays hidden** until at least 10 films have real counts (`MOST_PICKED_MIN`). No seeded data.
 - **Privacy:** IP addresses are stored only as an HMAC hash using `HASH_SALT`.
+- **Dependencies:** `package.json` overrides Next's bundled postcss to 8.5.x to clear audit advisories without moving to Next 16. Remove the override when upgrading Next.
+
+## Hosting
+
+- Hostinger Node.js web app, deployed from GitHub `main`. Every push to `main` redeploys.
+- Settings: framework preset Next.js, Node 22, build `npm run build`, start `npm start`.
+- Env vars are set in hPanel: `TMDB_READ_TOKEN`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `HASH_SALT`, `NEXT_PUBLIC_SITE_URL=https://my10films.com`, `NEXT_PUBLIC_CONTACT_EMAIL`. `NEXT_PUBLIC_*` values are fixed in at build time, so changing one needs a redeploy.
+- `NEXT_PUBLIC_SITE_URL` is required in production. Behind the proxy the app doesn't see `my10films.com` as its own host, so the save route's same-origin check passes only through this value. Without it every save returns 403.
+- A malformed `SUPABASE_URL` is treated as unconfigured and logged once, so the build doesn't fail. Check build logs for `SUPABASE_URL is not an http(s) URL`.
+- Proxy headers, checked live on 2026-10-08: Hostinger overwrites `x-real-ip` with the real client address. It keeps a client-sent `x-forwarded-for` value at the front and appends the real address. `clientIp` reads `x-real-ip`, then the last `x-forwarded-for` entry. Never the first.
+- Supabase: `0001_init.sql` has been run on the production project.
 
 ## Verification status
 
-- **Passed:** typecheck, unit tests, production build, and a browser pass with mocked TMDB data at 1280px and 390px. That covered search errors, adding ten, keyboard and mouse reordering, canvas export with no CORS taint, reload persistence, and no horizontal overflow.
-- **Never run against live services:** TMDB, Supabase, the migration, the save-to-link flow, the share page with real data, and the preview image route.
+- **Passed locally:** typecheck, unit tests, production build, and a browser pass with mocked TMDB data at 1280px and 390px.
+- **Passed live on 2026-10-08:** TMDB search, adding ten, arrow reordering with focus and announcements, reload persistence, canvas export (1800 × 2100, no CORS taint), saving a share link to Supabase, the shared page (`noindex`), and its preview image.
+- **Not yet seen live:** Most picked, which stays hidden until there's enough data.
 
 ## Next steps
 
-1. **Deploy on Hostinger.** It needs the Business web hosting plan or a Cloud plan.
-   - hPanel → Websites → Add Website → Node.js web app → Import Git repository.
-   - Connect GitHub as **niknojed** and select `my10films`.
-   - Settings: framework preset Next.js, branch `main`, Node 22, build `npm run build`.
-   - Set env vars before the first build. `NEXT_PUBLIC_*` values are fixed in at build time.
-   - Every push to `main` redeploys automatically.
-   - Don't use Hostinger's "Connect a database" wizard for Supabase. It sets the anon key, and this app needs `SUPABASE_SERVICE_ROLE_KEY`.
-   - Unknown: whether the Business plan has enough build memory. An out-of-memory build failure means the app needs a Cloud plan.
-2. **Environment variables:**
-   - `TMDB_READ_TOKEN`
-   - `SUPABASE_URL`
-   - `SUPABASE_SERVICE_ROLE_KEY`
-   - `HASH_SALT` (32+ random characters)
-   - `NEXT_PUBLIC_SITE_URL` (live origin, no trailing slash)
-   - `NEXT_PUBLIC_CONTACT_EMAIL`
-
-   The maker runs with only the TMDB token. Without the Supabase values, share links return 503 and Most picked stays hidden.
-3. **Supabase:** run `supabase/migrations/0001_init.sql` once in the SQL editor.
-4. **TMDB logo:** download an approved logo from themoviedb.org/about/logos-attribution, save it as `public/tmdb.svg`, and place it where the comment in `src/app/about/page.tsx` marks the spot. It must be smaller than this site's own mark.
-5. **TMDB API terms:** confirm the caching and image rules. Current caching is 1 hour for search and 1 day for film records.
-6. **Live smoke test after deploy:** search, the poster export, a share link, the shared page and its preview image, and Most picked once there's data.
-7. **Proxy headers:** IP hashing reads `x-forwarded-for`. Confirm Hostinger sets it and clients can't spoof it.
+1. **TMDB API terms:** confirm the caching and image rules. Current caching is 1 hour for search and 1 day for film records.
+2. **Most picked:** check it once 10+ films have real counts.
 
 ## Known gaps
 
 - No moderation on the name and one-line fields shown on shared pages. They are length-capped and stripped of control characters only.
-- No self-serve deletion of a shared list. Removal is by email request.
+- No self-serve deletion of a shared list. Removal is by email request, then `delete from public.lists where slug = '...'` in the Supabase SQL editor. Film rows cascade.
 - No analytics.
-- The domain and final name are undecided.
 
 ## Git setup on this Mac
 
@@ -87,6 +80,9 @@ npm run build
   - The remote URL is `https://niknojed@github.com/niknojed/my10films.git`.
   - `.git/config` has `[credential] helper =`, which turns off the Keychain helper for this repo only.
 - Pushes authenticate through VS Code's GitHub sign-in as niknojed.
+- From a plain shell (including Claude Code), `gh` holds both accounts, with the work account active. Push with a one-off helper that changes no config:
+  `git -c credential.helper= -c 'credential.helper=!f(){ echo username=niknojed; echo "password=$(gh auth token --user niknojed)"; }; f' push origin main`
+- Don't switch the active `gh` account.
 - Don't change the global git credential config. Other repos on this Mac depend on it.
 - `my10films.zip` in the folder is a leftover delivery copy, ignored through `.git/info/exclude`, and safe to delete.
 

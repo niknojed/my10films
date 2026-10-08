@@ -1,6 +1,7 @@
 import "server-only";
 import { createHash, createHmac, randomBytes } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { clientIp } from "./ip";
 import { MOST_PICKED_LIMIT, MOST_PICKED_MIN } from "./config";
 import { isPosterPath } from "./tmdb";
 import type { Film, Layout, PickedFilm, SharedList, Theme } from "./types";
@@ -51,9 +52,7 @@ export function newSlug(): string {
 export function creatorHash(headers: Headers): string | null {
   const salt = process.env.HASH_SALT;
   if (!salt || salt.length < 16) return null;
-  const ip =
-    headers.get("x-forwarded-for")?.split(",")[0]?.trim() || headers.get("x-real-ip") || "unknown";
-  return createHmac("sha256", salt).update(ip).digest("hex");
+  return createHmac("sha256", salt).update(clientIp(headers)).digest("hex");
 }
 
 export function contentHash(parts: unknown): string {
