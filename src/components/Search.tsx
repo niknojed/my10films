@@ -21,6 +21,8 @@ const Search = forwardRef<HTMLInputElement, Props>(function Search({ pickedIds, 
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [retry, setRetry] = useState(0);
   const listRef = useRef<HTMLUListElement>(null);
+  // Query the person pressed Enter on before its results arrived. Added once they land.
+  const pendingEnter = useRef<string | null>(null);
 
   useEffect(() => {
     const query = q.trim();
@@ -64,6 +66,28 @@ const Search = forwardRef<HTMLInputElement, Props>(function Search({ pickedIds, 
     setQ("");
   }
 
+  useEffect(() => {
+    if (pendingEnter.current === null) return;
+    if (status.kind === "error") pendingEnter.current = null;
+    if (status.kind !== "ok" || status.query !== pendingEnter.current) return;
+    pendingEnter.current = null;
+    const film = status.results.find((f) => !pickedIds.has(f.id));
+    if (film && !full) {
+      onAdd(film);
+      setQ("");
+    }
+  }, [status, pickedIds, full, onAdd]);
+
+  function onEnter() {
+    const query = q.trim();
+    // Only act on results for exactly what is in the box. Otherwise wait for them.
+    if (status.kind === "ok" && status.query === query) {
+      if (firstFree) add(firstFree);
+    } else if (query.length >= 2) {
+      pendingEnter.current = query;
+    }
+  }
+
   function focusInput() {
     if (inputRef && "current" in inputRef) inputRef.current?.focus();
   }
@@ -93,11 +117,14 @@ const Search = forwardRef<HTMLInputElement, Props>(function Search({ pickedIds, 
           placeholder="Blade Runner, Spirited Away, Do the Right Thing…"
           aria-controls="results"
           aria-describedby="q-hint"
-          onChange={(e) => setQ(e.target.value)}
+          onChange={(e) => {
+            pendingEnter.current = null;
+            setQ(e.target.value);
+          }}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
-              if (firstFree) add(firstFree);
+              onEnter();
             } else if (e.key === "ArrowDown") {
               const first = listRef.current?.querySelector<HTMLButtonElement>("button:not(:disabled)");
               if (first) {
@@ -105,6 +132,7 @@ const Search = forwardRef<HTMLInputElement, Props>(function Search({ pickedIds, 
                 first.focus();
               }
             } else if (e.key === "Escape" && q) {
+              pendingEnter.current = null;
               setQ("");
             }
           }}

@@ -14,9 +14,9 @@ export default function About() {
       </p>
 
       <h2>Film data and images</h2>
-      {/* TMDB requires one of its approved logos here, shown smaller than this site's own mark.
-          Download one from themoviedb.org/about/logos-attribution, save it as public/tmdb.svg,
-          then replace this comment with: <img src="/tmdb.svg" alt="TMDB" width={96} height={12} /> */}
+      {/* TMDB's approved logo. Their terms require it to be less prominent than this site's own mark. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/tmdb.svg" alt="TMDB" width={92} height={12} className="block" />
       <p>
         Film titles, release years and poster images come from TMDB (The Movie Database). This product uses the TMDB
         API but is not endorsed or certified by TMDB.
