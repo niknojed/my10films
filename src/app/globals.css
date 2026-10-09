@@ -640,6 +640,62 @@
       grid-template-columns: repeat(5, minmax(0, 1fr));
     }
   }
+  /* explanatory content under the maker */
+  .guide {
+    display: grid;
+    gap: 2.5rem;
+    padding-top: 2rem;
+    border-top: 2px solid var(--color-ink);
+  }
+  @media (min-width: 61rem) {
+    .guide {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      column-gap: 3.5rem;
+    }
+  }
+  .guide-block {
+    display: grid;
+    align-content: start;
+    gap: 1rem;
+    max-width: 65ch;
+    min-width: 0;
+  }
+  .guide-steps {
+    display: grid;
+  }
+  .guide-steps li {
+    display: grid;
+    grid-template-columns: 2rem minmax(0, 1fr);
+    gap: 0.5rem;
+    align-items: baseline;
+    padding-block: 0.75rem;
+    border-top: 1px solid var(--color-line);
+  }
+  .guide-ideas {
+    display: grid;
+    gap: 0.5rem;
+    padding-left: 1.25rem;
+    list-style: disc;
+  }
+  .guide-ideas li::marker {
+    color: var(--color-accent);
+  }
+  .guide-faq {
+    display: grid;
+  }
+  .guide-faq > div {
+    display: grid;
+    gap: 0.25rem;
+    padding-block: 0.75rem;
+    border-top: 1px solid var(--color-line);
+  }
+  .guide-faq h3 {
+    font-weight: 600;
+  }
+  .guide-faq p {
+    color: var(--color-mute);
+  }
+
   .credits {
     display: grid;
     column-gap: 2.5rem;

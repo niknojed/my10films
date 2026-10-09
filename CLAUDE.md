@@ -31,6 +31,8 @@ npm run build
 - `src/app/api/lists`: POST, saves a shared list. Checks same origin, caps the body at 4 KB, and checks every film id against TMDB before saving. Calls the `create_list` RPC.
 - `src/app/api/img`: poster pass-through. Validates path and size and stores nothing.
 - `src/app/l/[slug]`: shared list page (`noindex`) plus `opengraph-image.tsx`, which reads fonts from `assets/`.
+- `src/app/page.tsx`: also server-renders the explanatory section below the maker (what it is, how to make a poster, ideas, questions), styled by `.guide*` in `globals.css`. When a control's label changes, update the copy there too.
+- SEO: `src/app/opengraph-image.tsx` and `twitter-image.tsx` are the site-wide preview, drawn in the default theme with empty slots and no poster art. `/l/[slug]` has its own `opengraph-image` and `twitter-image`, which take precedence on share pages. Without its `twitter-image`, X would show the site-wide image for shared lists. Canonicals are set per page on `/`, `/about` and `/privacy`, never in the root layout, which would leak them onto `/l/` pages. `src/app/sitemap.ts` lists those three pages, and `robots.ts` points to it.
 - `src/app/about`, `src/app/privacy`: credits with the TMDB notice and logo (`public/tmdb.svg`), takedown contact, privacy.
 - `src/lib/ip.ts`: client address for IP hashing. See Hosting below for why it reads `x-real-ip`.
 - `supabase/migrations/0001_init.sql`: `lists` and `list_films` tables. RLS is on with no policies, so only the service role can read or write. Two RPCs:
@@ -57,6 +59,7 @@ npm run build
 - Hostinger Node.js web app, deployed from GitHub `main`. Every push to `main` redeploys.
 - Settings: framework preset Next.js, Node 22, build `npm run build`, start `npm start`.
 - Env vars are set in hPanel: `TMDB_READ_TOKEN`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `HASH_SALT`, `NEXT_PUBLIC_SITE_URL=https://my10films.com`, `NEXT_PUBLIC_CONTACT_EMAIL`. `NEXT_PUBLIC_*` values are fixed in at build time, so changing one needs a redeploy.
+- Hosts, checked 2026-10-09: http redirects to https on both hosts, but `https://www.my10films.com` serves the site directly instead of redirecting to the apex. The fix is in Hostinger. Canonical tags point to the apex meanwhile.
 - `NEXT_PUBLIC_SITE_URL` is required in production. Behind the proxy the app doesn't see `my10films.com` as its own host, so the save route's same-origin check passes only through this value. Without it every save returns 403.
 - A malformed `SUPABASE_URL` is treated as unconfigured and logged once, so the build doesn't fail. Check build logs for `SUPABASE_URL is not an http(s) URL`.
 - Proxy headers, checked live on 2026-10-08: Hostinger overwrites `x-real-ip` with the real client address. It keeps a client-sent `x-forwarded-for` value at the front and appends the real address. `clientIp` reads `x-real-ip`, then the last `x-forwarded-for` entry. Never the first.

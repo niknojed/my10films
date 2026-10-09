@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { SITE_NAME } from "@/lib/config";
 
-export const metadata: Metadata = { title: "Credits and takedowns" };
+export const metadata: Metadata = { title: "Credits and takedowns", alternates: { canonical: "/about" } };
 
 export default function About() {
   const email = process.env.NEXT_PUBLIC_CONTACT_EMAIL;

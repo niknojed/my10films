@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Privacy" };
+export const metadata: Metadata = { title: "Privacy", alternates: { canonical: "/privacy" } };
 
 export default function Privacy() {
   const email = process.env.NEXT_PUBLIC_CONTACT_EMAIL;
