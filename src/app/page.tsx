@@ -12,8 +12,7 @@ export default async function Home() {
         <p className="mono text-accent">{SITE_NAME}</p>
         <h1 className="h-hero">The ten films that made you</h1>
         <p className="max-w-[46ch] text-mute">
-          Pick them, put them in order, save one poster. No account. Your list stays in this browser until you share
-          it.
+          Search for ten films, rank them, and save the poster for your feed or Story.
         </p>
       </header>
       <Maker mostPicked={mostPicked} />

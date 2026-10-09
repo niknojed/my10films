@@ -116,7 +116,6 @@ const Search = forwardRef<HTMLInputElement, Props>(function Search({ pickedIds, 
           maxLength={80}
           placeholder="Blade Runner, Spirited Away, Do the Right Thing…"
           aria-controls="results"
-          aria-describedby="q-hint"
           onChange={(e) => {
             pendingEnter.current = null;
             setQ(e.target.value);
@@ -138,9 +137,6 @@ const Search = forwardRef<HTMLInputElement, Props>(function Search({ pickedIds, 
           }}
         />
       </div>
-      <p className="hint" id="q-hint">
-        Enter adds the top match. Arrow down moves into the results.
-      </p>
 
       <div aria-live="polite" className="sr-only">
         {status.kind === "loading" ? "Searching." : null}

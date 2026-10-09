@@ -7,7 +7,8 @@ import "@fontsource/dm-mono/500";
 import "@fontsource/schibsted-grotesk/400";
 import "@fontsource/schibsted-grotesk/600";
 import "./globals.css";
-import { SITE_NAME, siteUrl } from "@/lib/config";
+import { SITE_NAME, THEMES, siteUrl } from "@/lib/config";
+import { INITIAL_STATE, STORAGE_KEY } from "@/lib/store";
 
 const description =
   "Pick the ten films that made you, put them in order, and save one poster for your feed or Story. No account.";
@@ -30,9 +31,16 @@ export const viewport: Viewport = {
   ],
 };
 
+// Applies the saved poster theme to the page before first paint, so a returning visitor never sees
+// the default palette flash first. Maker keeps it in sync after that.
+const themeScript = `(function(){var t;try{t=JSON.parse(localStorage.getItem(${JSON.stringify(STORAGE_KEY)})||"null");t=t&&t.theme}catch(e){}document.documentElement.dataset.theme=${JSON.stringify(THEMES)}.indexOf(t)>-1?t:${JSON.stringify(INITIAL_STATE.theme)}})()`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body>
         <a
           href="#main"

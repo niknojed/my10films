@@ -27,6 +27,15 @@ export default function Maker({ mostPicked }: { mostPicked: PickedFilm[] }) {
     if (hydrated) setStorageOk(saveState(state));
   }, [state, hydrated]);
 
+  // The page wears the poster theme. The layout script set it before paint; this follows changes.
+  useEffect(() => {
+    if (!hydrated) return;
+    const root = document.documentElement;
+    root.dataset.theme = state.theme;
+    const bg = getComputedStyle(root).getPropertyValue("--color-bg").trim();
+    if (bg) document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute("content", bg));
+  }, [state.theme, hydrated]);
+
   // Another tab changed the list: adopt it so two tabs never overwrite each other blindly.
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
