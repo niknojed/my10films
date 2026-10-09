@@ -4,7 +4,8 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { clientIp } from "./ip";
 import { MOST_PICKED_LIMIT, MOST_PICKED_MIN } from "./config";
 import { getFilm, TmdbError } from "./tmdb";
-import type { Film, Layout, PickedFilm, SharedList, Theme } from "./types";
+import { isGenre } from "./listType";
+import type { Film, Layout, ListType, PickedFilm, SharedList, Theme } from "./types";
 import { isSlug } from "./validate";
 
 let client: SupabaseClient | null = null;
@@ -79,7 +80,7 @@ export async function getSharedList(slug: string): Promise<SharedList | null> {
   if (!supabase) return null;
   const { data, error } = await supabase
     .from("lists")
-    .select("slug,name,quote,layout,theme,created_at,list_films(position,tmdb_id)")
+    .select("slug,name,quote,layout,theme,list_type,genre,created_at,list_films(position,tmdb_id)")
     .eq("slug", slug)
     .maybeSingle();
   if (error) throw new Error(`lists read failed: ${error.message}`);
@@ -97,6 +98,8 @@ export async function getSharedList(slug: string): Promise<SharedList | null> {
     quote: (data.quote as string) ?? "",
     layout: data.layout as Layout,
     theme: data.theme as Theme,
+    listType: (data.list_type as ListType) ?? "made",
+    genre: data.list_type === "genre" && isGenre(data.genre) ? data.genre : null,
     films,
     createdAt: data.created_at as string,
   };

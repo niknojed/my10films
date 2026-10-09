@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type Dispatch } from "react";
 import { MAX_FILMS, NAME_MAX, QUOTE_MAX } from "@/lib/config";
+import { headingLine } from "@/lib/listType";
 import { drawPoster, POSTER_SIZE, type ArtMap } from "@/lib/poster";
 import type { MakerAction, MakerState } from "@/lib/store";
 import type { ApiError, Format, Layout, Theme } from "@/lib/types";
@@ -60,12 +61,27 @@ export default function PosterPanel({ state, dispatch, art }: Props) {
   const [linkNote, setLinkNote] = useState<Note>(null);
   const [link, setLink] = useState<{ key: string; url: string } | null>(null);
   const linkInput = useRef<HTMLInputElement>(null);
+  const [expanded, setExpanded] = useState(false);
+  const dialog = useRef<HTMLDialogElement>(null);
+  const expandButton = useRef<HTMLButtonElement>(null);
+  const wasExpanded = useRef(false);
 
   const left = MAX_FILMS - state.picks.length;
+  const needsGenre = state.listType === "genre" && !state.genre;
+  const blocked = left > 0 || needsGenre;
   const size = POSTER_SIZE[state.format];
   const listKey = useMemo(
-    () => JSON.stringify([state.picks.map((p) => p.id), state.name.trim(), state.quote.trim(), state.layout, state.theme]),
-    [state.picks, state.name, state.quote, state.layout, state.theme],
+    () =>
+      JSON.stringify([
+        state.picks.map((p) => p.id),
+        state.name.trim(),
+        state.quote.trim(),
+        state.layout,
+        state.theme,
+        state.listType,
+        state.listType === "genre" ? state.genre : null,
+      ]),
+    [state.picks, state.name, state.quote, state.layout, state.theme, state.listType, state.genre],
   );
   const currentLink = link && link.key === listKey ? link.url : null;
 
@@ -89,11 +105,25 @@ export default function PosterPanel({ state, dispatch, art }: Props) {
     if (!el) return;
     const id = requestAnimationFrame(() => drawPoster(el, { ...state, films: state.picks }, art));
     return () => cancelAnimationFrame(id);
-  }, [state, art, fontsReady]);
+    // `expanded` is here because the canvas moves into the dialog and back, and each new element needs drawing.
+  }, [state, art, fontsReady, expanded]);
+
+  useEffect(() => {
+    const d = dialog.current;
+    if (expanded) {
+      wasExpanded.current = true;
+      if (d && !d.open) d.showModal();
+    } else if (wasExpanded.current) {
+      // The button that opened the view was replaced while it was open, so the browser can't
+      // return focus to it on its own.
+      wasExpanded.current = false;
+      expandButton.current?.focus();
+    }
+  }, [expanded]);
 
   async function savePng() {
     const el = canvas.current;
-    if (!el || left > 0 || busy) return;
+    if (!el || blocked || busy) return;
     setBusy("save");
     setSaveNote({ tone: "info", text: "Rendering…" });
     try {
@@ -107,7 +137,7 @@ export default function PosterPanel({ state, dispatch, art }: Props) {
       const touch = window.matchMedia("(pointer: coarse)").matches;
       if (touch && typeof navigator.canShare === "function" && navigator.canShare({ files: [file] })) {
         try {
-          await navigator.share({ files: [file], title: "The ten films that made me" });
+          await navigator.share({ files: [file], title: headingLine(state.listType, state.genre, state.name) });
           setSaveNote({ tone: "info", text: "Sent to the share sheet." });
           return;
         } catch (err) {
@@ -141,7 +171,7 @@ export default function PosterPanel({ state, dispatch, art }: Props) {
   }
 
   async function makeLink() {
-    if (left > 0 || busy) return;
+    if (blocked || busy) return;
     setBusy("link");
     setLinkNote({ tone: "info", text: "Saving your list…" });
     try {
@@ -153,6 +183,8 @@ export default function PosterPanel({ state, dispatch, art }: Props) {
           quote: state.quote,
           layout: state.layout,
           theme: state.theme,
+          listType: state.listType,
+          genre: state.listType === "genre" ? state.genre : null,
           filmIds: state.picks.map((p) => p.id),
         }),
       });
@@ -192,6 +224,93 @@ export default function PosterPanel({ state, dispatch, art }: Props) {
       ? "Poster preview with ten empty slots"
       : `Poster preview listing ${state.picks.map((p, i) => `${i + 1}. ${p.title}`).join(", ")}`;
 
+  const saveHint = left > 0 ? `Add ${left} more to save the poster.` : needsGenre ? "Choose a genre to save the poster." : null;
+
+  const preview = (
+    <div className="frame">
+      <canvas ref={canvas} role="img" aria-label={alt} width={size.w} height={size.h} />
+      {!expanded ? (
+        <button type="button" ref={expandButton} className="frame-expand" onClick={() => setExpanded(true)}>
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" />
+          </svg>
+          Expand
+        </button>
+      ) : null}
+    </div>
+  );
+
+  const options = (
+    <div className="grid gap-4">
+      <div className="field">
+        <label htmlFor="name">Name or handle (optional)</label>
+        <input
+          id="name"
+          className="input"
+          value={state.name}
+          maxLength={NAME_MAX}
+          autoComplete="off"
+          placeholder="@you"
+          onChange={(e) => dispatch({ type: "name", value: e.target.value })}
+        />
+      </div>
+      <div className="field">
+        <label htmlFor="quote">One line (optional)</label>
+        <input
+          id="quote"
+          className="input"
+          value={state.quote}
+          maxLength={QUOTE_MAX}
+          autoComplete="off"
+          placeholder="Saw the first one at nine. Never recovered."
+          onChange={(e) => dispatch({ type: "quote", value: e.target.value })}
+        />
+      </div>
+      <Segmented<Format>
+        legend="Format"
+        name="format"
+        value={state.format}
+        onChange={(value) => dispatch({ type: "format", value })}
+        options={[
+          { value: "feed", label: "Feed 1800 × 2100" },
+          { value: "story", label: "Story 1080 × 1920" },
+        ]}
+      />
+      <Segmented<Layout>
+        legend="Billing"
+        name="layout"
+        value={state.layout}
+        onChange={(value) => dispatch({ type: "layout", value })}
+        options={[
+          { value: "top", label: "Top billing for no. 1" },
+          { value: "equal", label: "Equal billing" },
+        ]}
+      />
+      <Segmented<Theme>
+        legend="Theme"
+        name="theme"
+        value={state.theme}
+        onChange={(value) => dispatch({ type: "theme", value })}
+        options={[
+          { value: "silver", label: "Silver screen" },
+          { value: "slate", label: "Cinema" },
+          { value: "velvet", label: "Velvet" },
+        ]}
+      />
+    </div>
+  );
+
+  const save = (
+    <div className="grid gap-2">
+      <button type="button" className="btn btn-primary w-full" disabled={blocked || busy !== null} onClick={savePng}>
+        {busy === "save" ? "Rendering…" : "Save poster"}
+      </button>
+      <p className={`status${saveNote?.tone === "error" ? " status-error" : ""}`} role="status">
+        {saveHint ?? saveNote?.text}
+      </p>
+    </div>
+  );
+
   return (
     <aside
       className="grid content-start gap-6 min-w-0 lg:sticky lg:top-4 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start"
@@ -203,79 +322,47 @@ export default function PosterPanel({ state, dispatch, art }: Props) {
           {size.w} × {size.h} px
         </p>
       </div>
-      <div className="frame">
-        <canvas ref={canvas} role="img" aria-label={alt} width={size.w} height={size.h} />
-      </div>
 
-      <div className="grid gap-4">
-        <div className="field">
-          <label htmlFor="name">Name or handle (optional)</label>
-          <input
-            id="name"
-            className="input"
-            value={state.name}
-            maxLength={NAME_MAX}
-            autoComplete="off"
-            placeholder="@you"
-            onChange={(e) => dispatch({ type: "name", value: e.target.value })}
-          />
-        </div>
-        <div className="field">
-          <label htmlFor="quote">One line (optional)</label>
-          <input
-            id="quote"
-            className="input"
-            value={state.quote}
-            maxLength={QUOTE_MAX}
-            autoComplete="off"
-            placeholder="Saw the first one at nine. Never recovered."
-            onChange={(e) => dispatch({ type: "quote", value: e.target.value })}
-          />
-        </div>
-        <Segmented<Format>
-          legend="Format"
-          name="format"
-          value={state.format}
-          onChange={(value) => dispatch({ type: "format", value })}
-          options={[
-            { value: "feed", label: "Feed 1800 × 2100" },
-            { value: "story", label: "Story 1080 × 1920" },
-          ]}
-        />
-        <Segmented<Layout>
-          legend="Billing"
-          name="layout"
-          value={state.layout}
-          onChange={(value) => dispatch({ type: "layout", value })}
-          options={[
-            { value: "top", label: "Top billing for no. 1" },
-            { value: "equal", label: "Equal billing" },
-          ]}
-        />
-        <Segmented<Theme>
-          legend="Theme"
-          name="theme"
-          value={state.theme}
-          onChange={(value) => dispatch({ type: "theme", value })}
-          options={[
-            { value: "silver", label: "Silver screen" },
-            { value: "slate", label: "Cinema" },
-            { value: "velvet", label: "Velvet" },
-          ]}
-        />
-      </div>
+      {/* One copy of the preview and options at a time: here, or in the expanded view. */}
+      {expanded ? (
+        <p className="status">The poster is open in the expanded view.</p>
+      ) : (
+        <>
+          {preview}
+          {options}
+          {save}
+        </>
+      )}
 
-      <div className="grid gap-2">
-        <button type="button" className="btn btn-primary w-full" disabled={left > 0 || busy !== null} onClick={savePng}>
-          {busy === "save" ? "Rendering…" : "Save poster"}
-        </button>
-        <p className={`status${saveNote?.tone === "error" ? " status-error" : ""}`} role="status">
-          {left > 0 ? `Add ${left} more to save the poster.` : saveNote?.text}
-        </p>
-      </div>
+      <dialog
+        ref={dialog}
+        className="poster-dialog"
+        aria-labelledby="poster-dialog-title"
+        onClose={() => setExpanded(false)}
+      >
+        {expanded ? (
+          <>
+            <div className="dialog-bar">
+              <h2 id="poster-dialog-title" className="h-sec">
+                Poster
+              </h2>
+              <button type="button" className="btn" onClick={() => dialog.current?.close()}>
+                Close
+              </button>
+            </div>
+            <div className="dialog-body">
+              {preview}
+              <div className="grid content-start gap-6">
+                {options}
+                {save}
+              </div>
+            </div>
+          </>
+        ) : null}
+      </dialog>
 
       <div className="grid gap-2 border-t border-line pt-4">
-        <button type="button" className="btn w-full" disabled={left > 0 || busy !== null} onClick={makeLink}>
+        <button type="button" className="btn w-full" disabled={blocked || busy !== null} onClick={makeLink}>
           {busy === "link" ? "Saving…" : currentLink ? "Link is up to date" : "Get a share link"}
         </button>
         {currentLink ? (
@@ -299,7 +386,13 @@ export default function PosterPanel({ state, dispatch, art }: Props) {
           </div>
         ) : null}
         <p className={`status${linkNote?.tone === "error" ? " status-error" : ""}`} role="status">
-          {left > 0 ? "A share link needs all ten." : link && !currentLink ? "Your list changed. Get a new link." : linkNote?.text}
+          {left > 0
+            ? "A share link needs all ten."
+            : needsGenre
+              ? "Choose a genre to get a share link."
+              : link && !currentLink
+                ? "Your list changed. Get a new link."
+                : linkNote?.text}
         </p>
         <p className="hint">A share link makes this list public.</p>
       </div>

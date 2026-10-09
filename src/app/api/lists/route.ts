@@ -67,7 +67,16 @@ export async function POST(req: NextRequest) {
     return fail(502, "upstream", "The film database is not answering. Your list is still here. Try again in a minute.");
   }
 
-  const hash = contentHash([creator, input.name, input.quote, input.layout, input.theme, input.filmIds]);
+  const hash = contentHash([
+    creator,
+    input.name,
+    input.quote,
+    input.layout,
+    input.theme,
+    input.listType,
+    input.genre,
+    input.filmIds,
+  ]);
 
   for (let attempt = 0; attempt < 3; attempt++) {
     const { data, error } = await supabase.rpc("create_list", {
@@ -76,6 +85,8 @@ export async function POST(req: NextRequest) {
       p_quote: input.quote,
       p_layout: input.layout,
       p_theme: input.theme,
+      p_list_type: input.listType,
+      p_genre: input.genre,
       p_content_hash: hash,
       p_creator_hash: creator,
       p_films: films,

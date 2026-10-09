@@ -12,6 +12,7 @@ export const MOST_PICKED_LIMIT = 20;
 export const LAYOUTS = ["top", "equal"] as const;
 export const THEMES = ["silver", "slate", "velvet"] as const;
 export const FORMATS = ["feed", "story"] as const;
+export const LIST_TYPES = ["made", "alltime", "genre"] as const;
 
 export function siteUrl(): string {
   return (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/+$/, "");

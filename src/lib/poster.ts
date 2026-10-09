@@ -1,5 +1,6 @@
 import { MAX_FILMS, SITE_NAME } from "./config";
-import type { Film, Format, Layout, Theme } from "./types";
+import { headingFor } from "./listType";
+import type { Film, Format, Layout, ListType, Theme } from "./types";
 
 export const FONT_DISPLAY = '"Big Shoulders Display","Arial Narrow",Impact,sans-serif';
 export const FONT_MONO = '"DM Mono",ui-monospace,Menlo,Consolas,monospace';
@@ -252,6 +253,8 @@ export interface PosterInput {
   format: Format;
   layout: Layout;
   theme: Theme;
+  listType: ListType;
+  genre: string | null;
 }
 
 /** Loaded poster art keyed by film id. A missing or null entry draws the generated title card. */
@@ -299,6 +302,7 @@ export function drawPoster(canvas: HTMLCanvasElement, input: PosterInput, art: A
   }
 
   // header
+  const heading = headingFor(input.listType, input.genre, input.name);
   const es = feed ? 30 : 23;
   ctx.textBaseline = "alphabetic";
   ctx.textAlign = "left";
@@ -306,14 +310,14 @@ export function drawPoster(canvas: HTMLCanvasElement, input: PosterInput, art: A
   ctx.font = `500 ${es}px ${FONT_MONO}`;
   tracking(ctx, es * 0.14);
   y += es;
-  ctx.fillText("THE TEN FILMS THAT MADE", M, y);
+  ctx.fillText(ellipsize(ctx, heading.eyebrow.toUpperCase(), cw - es * 5), M, y);
   ctx.textAlign = "right";
   ctx.fillStyle = T.mute;
   ctx.fillText("01—10", W - M, y);
   ctx.textAlign = "left";
   tracking(ctx, 0);
 
-  const head = (input.name.trim() || "Me").toUpperCase();
+  const head = heading.big.toUpperCase();
   let hs = feed ? 230 : 170;
   ctx.font = `900 ${hs}px ${FONT_DISPLAY}`;
   while (hs > 60 && ctx.measureText(head).width > cw) {

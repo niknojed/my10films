@@ -1,11 +1,14 @@
-import { LAYOUTS, MAX_FILMS, NAME_MAX, QUOTE_MAX, THEMES } from "./config";
-import type { Layout, Theme } from "./types";
+import { LAYOUTS, LIST_TYPES, MAX_FILMS, NAME_MAX, QUOTE_MAX, THEMES } from "./config";
+import { isGenre } from "./listType";
+import type { Layout, ListType, Theme } from "./types";
 
 export interface SavePayload {
   name: string;
   quote: string;
   layout: Layout;
   theme: Theme;
+  listType: ListType;
+  genre: string | null;
   filmIds: number[];
 }
 
@@ -34,6 +37,16 @@ export function parseSavePayload(body: unknown): Parsed<SavePayload> {
   if (typeof theme !== "string" || !(THEMES as readonly string[]).includes(theme)) {
     return { ok: false, message: "Unknown theme." };
   }
+  // Missing means "made", so a page loaded before list types existed can still save.
+  const listType = b.listType ?? "made";
+  if (typeof listType !== "string" || !(LIST_TYPES as readonly string[]).includes(listType)) {
+    return { ok: false, message: "Unknown list type." };
+  }
+  let genre: string | null = null;
+  if (listType === "genre") {
+    if (!isGenre(b.genre)) return { ok: false, message: "Choose a genre for this list." };
+    genre = b.genre;
+  }
   const ids = b.filmIds;
   if (!Array.isArray(ids) || ids.length !== MAX_FILMS) {
     return { ok: false, message: `A list needs exactly ${MAX_FILMS} films.` };
@@ -53,6 +66,8 @@ export function parseSavePayload(body: unknown): Parsed<SavePayload> {
       quote: cleanText(b.quote, QUOTE_MAX),
       layout: layout as Layout,
       theme: theme as Theme,
+      listType: listType as ListType,
+      genre,
       filmIds,
     },
   };

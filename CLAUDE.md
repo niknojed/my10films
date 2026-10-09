@@ -13,7 +13,7 @@ A site where people pick the ten films that made them, rank them, and save one p
 npm install
 npm run dev
 npm run typecheck
-npm test        # 25 unit tests: validation, poster grids, list state, client IP
+npm test        # 34 unit tests: validation, poster grids, list state, client IP, list types
 npm run build
 ```
 
@@ -23,7 +23,8 @@ npm run build
 - `src/components/Maker.tsx`: client shell. `useReducer` state, persisted to `localStorage` (`my10films.v1`), cross-tab sync.
 - `src/components/Search.tsx`: debounced search against `/api/search`, keyboard navigation, error and retry states. Enter pressed before results arrive is held and applied when results for that exact query land.
 - `src/components/Board.tsx`: ranked slots. Pointer drag (whole card with a mouse, grip on touch), arrow buttons, focus kept after moves, live-region announcements.
-- `src/components/PosterPanel.tsx`: canvas preview, format, layout and theme controls, PNG export (share sheet on touch, download elsewhere), share-link creation.
+- `src/components/PosterPanel.tsx`: canvas preview, format, layout and theme controls, PNG export (share sheet on touch, download elsewhere), share-link creation. Expand opens a native `<dialog>`: full screen on phones, poster beside the options from 64rem. The preview and options render in one place at a time, so the canvas remounts and redraws on open and close.
+- `src/components/ListTypeChips.tsx` and `src/lib/listType.ts`: list types `made` (the default), `alltime` and `genre`, with TMDB's 18 film genres. `headingFor` gives the poster and share-page heading; `headingLine` gives the sentence for titles and the share sheet. A genre list can't be saved or shared until a genre is chosen.
 - `src/lib/poster.ts`: canvas renderer. Layouts: feed + top billing = no. 1 large beside a 3×3; feed + equal = 5×2; story + top = no. 1 half-width, 2×2 beside it, a row of 5 below; story + equal = rows of 3, 3, 4. Films with no TMDB poster get a generated title card.
 - `src/lib/useArt.ts`: loads poster images for canvas. Direct from TMDB with CORS first, then the `/api/img` same-origin pass-through.
 - `src/app/api/search`: TMDB search proxy. The token stays on the server.
@@ -35,6 +36,7 @@ npm run build
 - `supabase/migrations/0001_init.sql`: `lists` and `list_films` tables. RLS is on with no policies, so only the service role can read or write. Two RPCs:
   - `create_list`: atomic save. A repeat of the same list by the same person returns its existing slug. 10 saves an hour per hashed IP.
   - `most_picked`: counts distinct people per film.
+- `supabase/migrations/0003_list_types.sql`: adds `lists.list_type` (default `made`) and `lists.genre`, and recreates `create_list` with two defaulted parameters. Run it before deploying code that reads or sends list types.
 - `supabase/migrations/0002_store_ids_only.sql`: `list_films` keeps only `tmdb_id` and `position`. `most_picked` returns `(tmdb_id, picks)`.
 - `filmsById` in `src/lib/server.ts`: share pages, preview images and Most picked fetch titles, years and posters from TMDB by id, through `getFilm`'s 1-day fetch cache. A film TMDB has removed shows as a "No longer listed" title card on share pages and is dropped from Most picked.
 
@@ -45,7 +47,7 @@ npm run build
 - **Scope is full parity with my9albums:** the maker, share links and Most picked.
 - **Ten films, with two layouts:** top billing and equal billing.
 - **Most picked is turned off** (`SHOW_MOST_PICKED = false` in `src/lib/config.ts`, since 2026-10-08), because it was noise at launch. Saved lists still count toward it in the database. When it's turned back on, it stays hidden until at least 10 films have real counts (`MOST_PICKED_MIN`). No seeded data.
-- **Themes:** order and labels are Silver screen (`silver`, the default), Cinema (`slate`), then Velvet (`velvet`). The stored values never change, because saved lists and the database check constraint use them. The whole site wears the chosen theme: `data-theme` on `<html>`, set before first paint by an inline script in `layout.tsx` (default `silver`), kept in sync by `Maker`, with one token block per theme in `globals.css`. The OS light or dark setting only applies when JavaScript is off.
+- **Themes:** order and labels are Silver screen (`silver`, the default), Cinema (`slate`), then Velvet (`velvet`). The stored values never change, because saved lists and the database check constraint use them. The whole site wears the chosen theme: `data-theme` on `<html>`, set before first paint by an inline script in `layout.tsx` (default `silver`), kept in sync by `Maker`, with one token block per theme in `globals.css`. Shared list pages wear the creator's theme instead (`PageTheme`), and the visitor's own theme returns when they navigate away. The OS light or dark setting only applies when JavaScript is off.
 - **Privacy:** IP addresses are stored only as an HMAC hash using `HASH_SALT`.
 - **TMDB terms (checked 2026-10-08):** section 1.C forbids caching TMDB data for more than 6 months, so the database stores TMDB ids only. Never add title, year or poster columns back. The same section bans "derivatives" of TMDB content. The poster export may count as one under a strict reading. The decision was to proceed as is.
 - **Dependencies:** `package.json` overrides Next's bundled postcss to 8.5.x to clear audit advisories without moving to Next 16. Remove the override when upgrading Next.

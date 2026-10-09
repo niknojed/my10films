@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { ImageResponse } from "next/og";
 import { SITE_NAME } from "@/lib/config";
 import { posterUrl } from "@/lib/img";
+import { headingFor } from "@/lib/listType";
 import { getSharedList } from "@/lib/server";
 
 export const runtime = "nodejs";
@@ -32,7 +33,8 @@ export default async function Image({ params }: { params: Promise<{ slug: string
     ...(display ? [{ name: "Display", data: display, weight: 900 as const, style: "normal" as const }] : []),
     ...(mono ? [{ name: "Mono", data: mono, weight: 500 as const, style: "normal" as const }] : []),
   ];
-  const name = (list?.name || "Me").toUpperCase();
+  const heading = list ? headingFor(list.listType, list.genre, list.name) : headingFor("made", null, "");
+  const name = heading.big.toUpperCase();
   const films = list?.films ?? [];
   const W = 132;
   const H = 198;
@@ -53,7 +55,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
       >
         <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", width: 348 }}>
           <div style={{ display: "flex", flexDirection: "column" }}>
-            <div style={{ fontSize: 20, letterSpacing: 3, color: C.accent }}>THE TEN FILMS THAT MADE</div>
+            <div style={{ fontSize: 20, letterSpacing: 3, color: C.accent }}>{heading.eyebrow.toUpperCase()}</div>
             <div
               style={{
                 fontFamily: "Display",

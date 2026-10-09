@@ -2,21 +2,19 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import Art from "@/components/Art";
+import PageTheme from "@/components/PageTheme";
+import { headingFor, headingLine } from "@/lib/listType";
 import { getSharedList } from "@/lib/server";
 
 export const revalidate = 3600;
 
 type Params = { params: Promise<{ slug: string }> };
 
-function heading(name: string) {
-  return `The ten films that made ${name || "me"}`;
-}
-
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
   const list = await getSharedList(slug).catch(() => null);
   if (!list) return { title: "List not found", robots: { index: false } };
-  const title = heading(list.name);
+  const title = headingLine(list.listType, list.genre, list.name);
   const description = list.films.map((f, i) => `${i + 1}. ${f.title}`).join(" · ");
   return {
     title,
@@ -33,12 +31,15 @@ export default async function SharedListPage({ params }: Params) {
   const list = await getSharedList(slug);
   if (!list) notFound();
   const [first, ...rest] = list.films;
+  const heading = headingFor(list.listType, list.genre, list.name);
 
   return (
     <>
+      {/* The page wears the creator's theme, set before the content below paints. */}
+      <PageTheme theme={list.theme} />
       <header className="grid gap-3 border-b-2 border-ink pb-6">
-        <p className="mono text-accent">The ten films that made</p>
-        <h1 className="h-hero [overflow-wrap:anywhere]">{list.name || "Me"}</h1>
+        <p className="mono text-accent">{heading.eyebrow}</p>
+        <h1 className="h-hero [overflow-wrap:anywhere]">{heading.big}</h1>
         {list.quote ? <p className="max-w-[46ch] text-lg">“{list.quote}”</p> : null}
       </header>
 

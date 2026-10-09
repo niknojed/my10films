@@ -1,5 +1,6 @@
-import { FORMATS, LAYOUTS, MAX_FILMS, NAME_MAX, QUOTE_MAX, THEMES } from "./config";
-import type { Film, Format, Layout, Theme } from "./types";
+import { FORMATS, LAYOUTS, LIST_TYPES, MAX_FILMS, NAME_MAX, QUOTE_MAX, THEMES } from "./config";
+import { isGenre } from "./listType";
+import type { Film, Format, Layout, ListType, Theme } from "./types";
 
 export interface MakerState {
   picks: Film[];
@@ -8,6 +9,9 @@ export interface MakerState {
   format: Format;
   layout: Layout;
   theme: Theme;
+  listType: ListType;
+  /** Kept when switching away from "genre", so switching back restores it. */
+  genre: string | null;
 }
 
 export const INITIAL_STATE: MakerState = {
@@ -17,6 +21,8 @@ export const INITIAL_STATE: MakerState = {
   format: "feed",
   layout: "top",
   theme: "silver",
+  listType: "made",
+  genre: null,
 };
 
 export type MakerAction =
@@ -29,7 +35,9 @@ export type MakerAction =
   | { type: "quote"; value: string }
   | { type: "format"; value: Format }
   | { type: "layout"; value: Layout }
-  | { type: "theme"; value: Theme };
+  | { type: "theme"; value: Theme }
+  | { type: "listType"; value: ListType }
+  | { type: "genre"; value: string | null };
 
 export function makerReducer(state: MakerState, action: MakerAction): MakerState {
   switch (action.type) {
@@ -62,6 +70,10 @@ export function makerReducer(state: MakerState, action: MakerAction): MakerState
       return { ...state, layout: action.value };
     case "theme":
       return { ...state, theme: action.value };
+    case "listType":
+      return { ...state, listType: action.value };
+    case "genre":
+      return { ...state, genre: isGenre(action.value) ? action.value : null };
   }
 }
 
@@ -99,6 +111,8 @@ export function reviveState(raw: unknown): MakerState {
     format: oneOf(r.format, FORMATS, INITIAL_STATE.format),
     layout: oneOf(r.layout, LAYOUTS, INITIAL_STATE.layout),
     theme: oneOf(r.theme, THEMES, INITIAL_STATE.theme),
+    listType: oneOf(r.listType, LIST_TYPES, INITIAL_STATE.listType),
+    genre: isGenre(r.genre) ? r.genre : null,
   };
 }
 

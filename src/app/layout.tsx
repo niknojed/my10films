@@ -32,8 +32,9 @@ export const viewport: Viewport = {
 };
 
 // Applies the saved poster theme to the page before first paint, so a returning visitor never sees
-// the default palette flash first. Maker keeps it in sync after that.
-const themeScript = `(function(){var t;try{t=JSON.parse(localStorage.getItem(${JSON.stringify(STORAGE_KEY)})||"null");t=t&&t.theme}catch(e){}document.documentElement.dataset.theme=${JSON.stringify(THEMES)}.indexOf(t)>-1?t:${JSON.stringify(INITIAL_STATE.theme)}})()`;
+// the default palette flash first. Maker keeps it in sync after that. Shared lists (/l/) start on the
+// default and PageTheme switches them to the creator's theme.
+const themeScript = `(function(){var t;if(location.pathname.indexOf("/l/")!==0){try{t=JSON.parse(localStorage.getItem(${JSON.stringify(STORAGE_KEY)})||"null");t=t&&t.theme}catch(e){}}document.documentElement.dataset.theme=${JSON.stringify(THEMES)}.indexOf(t)>-1?t:${JSON.stringify(INITIAL_STATE.theme)}})()`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

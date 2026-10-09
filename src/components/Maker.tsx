@@ -7,6 +7,7 @@ import type { Film, PickedFilm } from "@/lib/types";
 import { useArt } from "@/lib/useArt";
 import Art from "./Art";
 import Board from "./Board";
+import ListTypeChips from "./ListTypeChips";
 import PosterPanel from "./PosterPanel";
 import Search from "./Search";
 
@@ -74,6 +75,8 @@ export default function Maker({ mostPicked }: { mostPicked: PickedFilm[] }) {
     // sits under the list while the poster spans both rows on the right.
     <div className="grid min-w-0 gap-9 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-x-14 lg:gap-y-6">
       <section className="grid min-w-0 content-start gap-6 lg:col-start-1 lg:row-start-1" aria-label="Build your list">
+        <ListTypeChips listType={state.listType} genre={state.genre} dispatch={dispatch} />
+
         <div className="grid gap-3">
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
             <h2 className="h-sec">Pick</h2>

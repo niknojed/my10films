@@ -1,8 +1,9 @@
-import type { FORMATS, LAYOUTS, THEMES } from "./config";
+import type { FORMATS, LAYOUTS, LIST_TYPES, THEMES } from "./config";
 
 export type Layout = (typeof LAYOUTS)[number];
 export type Theme = (typeof THEMES)[number];
 export type Format = (typeof FORMATS)[number];
+export type ListType = (typeof LIST_TYPES)[number];
 
 export interface Film {
   /** TMDB movie id. */
@@ -24,6 +25,9 @@ export interface SharedList {
   quote: string;
   layout: Layout;
   theme: Theme;
+  listType: ListType;
+  /** Set only when listType is "genre". */
+  genre: string | null;
   films: Film[];
   createdAt: string;
 }
