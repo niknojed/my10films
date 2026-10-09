@@ -44,7 +44,8 @@ npm run build
 - **Posters come from TMDB.** TMDB doesn't own poster copyright, and no service licenses poster art for user-made images. The site shows TMDB attribution, a takedown contact and a credits page. Poster image files are never stored on our side.
 - **Scope is full parity with my9albums:** the maker, share links and Most picked.
 - **Ten films, with two layouts:** top billing and equal billing.
-- **Most picked stays hidden** until at least 10 films have real counts (`MOST_PICKED_MIN`). No seeded data.
+- **Most picked is turned off** (`SHOW_MOST_PICKED = false` in `src/lib/config.ts`, since 2026-10-08), because it was noise at launch. Saved lists still count toward it in the database. When it's turned back on, it stays hidden until at least 10 films have real counts (`MOST_PICKED_MIN`). No seeded data.
+- **Themes:** order and labels are Silver screen (`silver`, the default), Cinema (`slate`), then Velvet (`velvet`). The stored values never change, because saved lists and the database check constraint use them.
 - **Privacy:** IP addresses are stored only as an HMAC hash using `HASH_SALT`.
 - **TMDB terms (checked 2026-10-08):** section 1.C forbids caching TMDB data for more than 6 months, so the database stores TMDB ids only. Never add title, year or poster columns back. The same section bans "derivatives" of TMDB content. The poster export may count as one under a strict reading. The decision was to proceed as is.
 - **Dependencies:** `package.json` overrides Next's bundled postcss to 8.5.x to clear audit advisories without moving to Next 16. Remove the override when upgrading Next.
@@ -67,7 +68,7 @@ npm run build
 
 ## Next steps
 
-1. **Most picked:** check it once 10+ films have real counts.
+1. **Most picked:** decide when to turn it back on, then check it with real counts.
 
 ## Known gaps
 

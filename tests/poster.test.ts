@@ -66,7 +66,7 @@ describe("maker state", () => {
       name: "n".repeat(50),
     });
     expect(s.picks).toEqual([film(1), { id: 2, title: "T", year: "", poster: null }]);
-    expect([s.theme, s.format, s.name.length]).toEqual(["velvet", "story", 22]);
+    expect([s.theme, s.format, s.name.length]).toEqual(["silver", "story", 22]);
     expect(reviveState("garbage")).toBe(INITIAL_STATE);
   });
 });

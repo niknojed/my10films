@@ -16,7 +16,7 @@ export const INITIAL_STATE: MakerState = {
   quote: "",
   format: "feed",
   layout: "top",
-  theme: "velvet",
+  theme: "silver",
 };
 
 export type MakerAction =

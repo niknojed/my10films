@@ -258,9 +258,9 @@ export default function PosterPanel({ state, dispatch, art }: Props) {
           value={state.theme}
           onChange={(value) => dispatch({ type: "theme", value })}
           options={[
-            { value: "velvet", label: "Velvet" },
             { value: "silver", label: "Silver screen" },
-            { value: "slate", label: "Slate" },
+            { value: "slate", label: "Cinema" },
+            { value: "velvet", label: "Velvet" },
           ]}
         />
       </div>
@@ -301,7 +301,7 @@ export default function PosterPanel({ state, dispatch, art }: Props) {
         <p className={`status${linkNote?.tone === "error" ? " status-error" : ""}`} role="status">
           {left > 0 ? "A share link needs all ten." : link && !currentLink ? "Your list changed. Get a new link." : linkNote?.text}
         </p>
-        <p className="hint">A share link makes this list public and counts its films toward Most picked.</p>
+        <p className="hint">A share link makes this list public.</p>
       </div>
     </aside>
   );

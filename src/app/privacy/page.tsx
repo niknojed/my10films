@@ -22,11 +22,11 @@ export default function Privacy() {
       <h2>When you get a share link</h2>
       <p>
         The server stores the ten films, their order, your chosen layout and theme, and the name and line you typed.
-        Anyone with the link can see them. The films count toward the Most picked list.
+        Anyone with the link can see them. The films are counted toward a Most picked list, which isn't shown on the site at the moment.
       </p>
       <p>
         The server also stores a one-way hash of your IP address with the list. It is used for two things: limiting
-        how many lists one person can save in an hour, and counting each person once in Most picked. The address
+        how many lists one person can save in an hour, and counting each person once toward Most picked. The address
         itself is never stored.
       </p>
 

@@ -1,11 +1,11 @@
 import Maker from "@/components/Maker";
-import { SITE_NAME } from "@/lib/config";
+import { SHOW_MOST_PICKED, SITE_NAME } from "@/lib/config";
 import { getMostPicked } from "@/lib/server";
 
 export const revalidate = 600;
 
 export default async function Home() {
-  const mostPicked = await getMostPicked();
+  const mostPicked = SHOW_MOST_PICKED ? await getMostPicked() : [];
   return (
     <>
       <header className="grid gap-3 border-b-2 border-ink pb-6">
