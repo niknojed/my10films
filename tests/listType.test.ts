@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { headingFor, headingLine } from "@/lib/listType";
+import { headingFor, headingLine, previewBigSize } from "@/lib/listType";
 import { reviveState } from "@/lib/store";
 import { parseSavePayload } from "@/lib/validate";
 
@@ -60,5 +60,25 @@ describe("list type in stored state", () => {
   it("revives valid values and defaults the rest", () => {
     expect(reviveState({ listType: "genre", genre: "Drama" })).toMatchObject({ listType: "genre", genre: "Drama" });
     expect(reviveState({ listType: "nope", genre: "Vaporwave" })).toMatchObject({ listType: "made", genre: null });
+  });
+});
+
+describe("previewBigSize", () => {
+  it("keeps short lines at full size", () => {
+    expect(previewBigSize("ME")).toBe(132);
+  });
+
+  it("shrinks a single word so it fits on one line", () => {
+    const size = previewBigSize("HORROR");
+    expect(size).toBeLessThan(132);
+    expect(size * 0.56 * 6).toBeLessThanOrEqual(348);
+  });
+
+  it("sizes two words by the longer one, so they wrap between words", () => {
+    expect(previewBigSize("SCIENCE FICTION")).toBe(previewBigSize("SCIENCE"));
+  });
+
+  it("never goes below the minimum for long handles", () => {
+    expect(previewBigSize("@AVERYLONGHANDLENAME22")).toBe(56);
   });
 });

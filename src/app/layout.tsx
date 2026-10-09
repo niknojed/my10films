@@ -58,6 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Link href="/">Make a poster</Link>
               <Link href="/about">Credits and takedowns</Link>
               <Link href="/privacy">Privacy</Link>
+              <a href="https://kinan.design">Meet the creator</a>
             </nav>
             <p className="max-w-[70ch]">
               Film data and poster images come from TMDB. This product uses the TMDB API but is not endorsed or

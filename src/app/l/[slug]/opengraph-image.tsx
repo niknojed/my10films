@@ -3,8 +3,10 @@ import { join } from "node:path";
 import { ImageResponse } from "next/og";
 import { SITE_NAME } from "@/lib/config";
 import { posterUrl } from "@/lib/img";
-import { headingFor } from "@/lib/listType";
+import { headingFor, previewBigSize } from "@/lib/listType";
+import { POSTER_THEMES } from "@/lib/poster";
 import { getSharedList } from "@/lib/server";
+import type { Theme } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const alt = "A ranked list of ten films";
@@ -12,7 +14,8 @@ export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 export const revalidate = 86400;
 
-const C = { bg: "#1C0A12", fg: "#F5E6CF", mute: "#B79A8C", accent: "#F2B33D", card: "#3A1A28" };
+// The preview uses the list's own theme, the same colors as its poster. Cards show behind missing art.
+const CARD: Record<Theme, string> = { silver: "#CBCDD5", slate: "#1E1E22", velvet: "#3A1A28" };
 
 async function font(file: string): Promise<Buffer | null> {
   try {
@@ -35,6 +38,8 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   ];
   const heading = list ? headingFor(list.listType, list.genre, list.name) : headingFor("made", null, "");
   const name = heading.big.toUpperCase();
+  const theme: Theme = list?.theme ?? "silver";
+  const C = { ...POSTER_THEMES[theme], card: CARD[theme] };
   const films = list?.films ?? [];
   const W = 132;
   const H = 198;
@@ -59,7 +64,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
             <div
               style={{
                 fontFamily: "Display",
-                fontSize: name.length > 9 ? 76 : 132,
+                fontSize: previewBigSize(name),
                 lineHeight: 0.9,
                 marginTop: 14,
                 wordBreak: "break-word",

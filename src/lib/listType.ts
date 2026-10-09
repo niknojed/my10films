@@ -71,3 +71,13 @@ export function headingLine(listType: ListType, genre: string | null, name: stri
       return `The ten films that made ${n || "me"}`;
   }
 }
+
+/**
+ * Font size for the large line of the 1200 × 630 preview image, whose text column is 348px wide.
+ * Sized by the longest word, so one word never splits mid-word and two words wrap between them.
+ * 0.56em is a slightly generous width for Big Shoulders Display 900 capitals.
+ */
+export function previewBigSize(text: string, width = 348, max = 132, min = 56): number {
+  const longest = Math.max(1, ...text.split(/\s+/).map((w) => w.length));
+  return Math.max(min, Math.min(max, Math.floor(width / (longest * 0.56))));
+}
