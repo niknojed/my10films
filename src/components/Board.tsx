@@ -13,6 +13,8 @@ interface Props {
   announce: (message: string) => void;
 }
 
+const EDGE_SCROLL_PX_PER_MS = 0.5;
+
 const icons = {
   prev: <path d="M10 3 5 8l5 5" />,
   next: <path d="m6 3 5 5-5 5" />,
@@ -35,6 +37,11 @@ export default function Board({ picks, onMove, onRemove, onEmptySlot, announce }
   const focusKey = useRef<string | null>(null);
   const picksRef = useRef(picks);
   picksRef.current = picks;
+  // Latest callbacks, so the window listeners below are attached once and survive re-renders mid-drag.
+  const onMoveRef = useRef(onMove);
+  onMoveRef.current = onMove;
+  const announceRef = useRef(announce);
+  announceRef.current = announce;
 
   // Keep keyboard focus on the control the person just used, or its neighbor when it became disabled.
   useLayoutEffect(() => {
@@ -48,7 +55,25 @@ export default function Board({ picks, onMove, onRemove, onEmptySlot, announce }
     el?.focus();
   }, [picks]);
 
+  // On phones the board is a sideways row. Keep a newly added film in view.
+  const prevCount = useRef(picks.length);
   useEffect(() => {
+    const added = picks.length === prevCount.current + 1;
+    prevCount.current = picks.length;
+    const el = listRef.current;
+    const slot = el?.children[picks.length - 1];
+    if (!added || !el || !slot || el.scrollWidth <= el.clientWidth) return;
+    const box = el.getBoundingClientRect();
+    const r = slot.getBoundingClientRect();
+    if (r.left >= box.left && r.right <= box.right) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollTo({ left: el.scrollLeft + r.right - box.right, behavior: reduce ? "auto" : "smooth" });
+  }, [picks.length]);
+
+  useEffect(() => {
+    const pointer: { x: number; y: number } = { x: 0, y: 0 };
+    let raf = 0;
+
     function slotAt(x: number, y: number): number | null {
       const slots = listRef.current?.children;
       if (!slots) return null;
@@ -58,32 +83,66 @@ export default function Board({ picks, onMove, onRemove, onEmptySlot, announce }
       }
       return null;
     }
+    function reorderAt(x: number, y: number) {
+      const d = drag.current;
+      if (!d) return;
+      const j = slotAt(x, y);
+      if (j === null || j === d.index) return;
+      onMoveRef.current(d.index, j);
+      d.index = j;
+      setDragIndex(j);
+    }
+    // While dragging near either end of a scrollable row, scroll it so every slot can be reached.
+    // Speed is per millisecond, so slow or throttled frames don't slow the scroll down.
+    let last = 0;
+    function edgeScroll(now: number) {
+      const el = listRef.current;
+      if (!drag.current || !el) {
+        raf = 0;
+        last = 0;
+        return;
+      }
+      const dt = last ? Math.min(now - last, 100) : 16;
+      last = now;
+      if (el.scrollWidth > el.clientWidth) {
+        const box = el.getBoundingClientRect();
+        const dir = pointer.x < box.left + 48 ? -1 : pointer.x > box.right - 48 ? 1 : 0;
+        if (dir) {
+          el.scrollLeft += dir * EDGE_SCROLL_PX_PER_MS * dt;
+          reorderAt(pointer.x, pointer.y);
+        }
+      }
+      raf = requestAnimationFrame(edgeScroll);
+    }
     function onPointerMove(e: PointerEvent) {
       const d = drag.current;
       if (!d || e.pointerId !== d.pointerId) return;
-      const j = slotAt(e.clientX, e.clientY);
-      if (j === null || j === d.index) return;
-      onMove(d.index, j);
-      d.index = j;
-      setDragIndex(j);
+      pointer.x = e.clientX;
+      pointer.y = e.clientY;
+      reorderAt(e.clientX, e.clientY);
+      if (!raf) raf = requestAnimationFrame(edgeScroll);
     }
     function onPointerEnd(e: PointerEvent) {
       const d = drag.current;
       if (!d || e.pointerId !== d.pointerId) return;
       drag.current = null;
+      cancelAnimationFrame(raf);
+      raf = 0;
+      last = 0;
       setDragIndex(null);
       const film = picksRef.current[d.index];
-      if (film && d.index !== d.from) announce(`${film.title} moved to number ${d.index + 1}.`);
+      if (film && d.index !== d.from) announceRef.current(`${film.title} moved to number ${d.index + 1}.`);
     }
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerup", onPointerEnd);
     window.addEventListener("pointercancel", onPointerEnd);
     return () => {
+      cancelAnimationFrame(raf);
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerEnd);
       window.removeEventListener("pointercancel", onPointerEnd);
     };
-  }, [onMove, announce]);
+  }, []);
 
   function startDrag(e: React.PointerEvent, index: number, fromGrip: boolean) {
     if (!fromGrip && (e.pointerType !== "mouse" || e.button !== 0)) return;
@@ -111,7 +170,7 @@ export default function Board({ picks, onMove, onRemove, onEmptySlot, announce }
   const empties = Array.from({ length: MAX_FILMS - picks.length }, (_, i) => picks.length + i + 1);
 
   return (
-    <ol className="board" ref={listRef}>
+    <ol className={`board${dragIndex !== null ? " board-dragging" : ""}`} ref={listRef}>
       {picks.map((film, i) => (
         <li key={film.id} className={`slot slot-filled${dragIndex === i ? " slot-dragging" : ""}`}>
           <div onPointerDown={(e) => startDrag(e, i, false)}>
