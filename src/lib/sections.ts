@@ -1,3 +1,5 @@
+import type { ListType } from "./types";
+
 export const SECTIONS = ["films", "shows"] as const;
 export type Section = (typeof SECTIONS)[number];
 
@@ -31,6 +33,12 @@ export const SECTION_INFO: Record<Section, SectionInfo> = {
     media: "tv",
     placeholder: "The Wire, Martin, Cowboy Bebop…",
   },
+};
+
+/** The list types each section offers. Shows have no genres. */
+export const SECTION_LIST_TYPES: Record<Section, readonly ListType[]> = {
+  films: ["made", "alltime", "genre"],
+  shows: ["made", "alltime"],
 };
 
 export function isSection(v: unknown): v is Section {

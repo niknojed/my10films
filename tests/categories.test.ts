@@ -17,11 +17,14 @@ describe("category rules", () => {
     expect(matchesRule(r, { genreIds: [28], year: 1990 })).toBe(false);
     expect(matchesRule(r, { genreIds: [28], year: null })).toBe(false);
     expect(matchesRule(rule("films", "horror-pre-2000"), { genreIds: [27], year: 2000 })).toBe(false);
-    expect(matchesRule(rule("shows", "90s-tv"), { genreIds: [], year: 1993 })).toBe(true);
   });
 
   it("leaves keyword checks to the server lookup", () => {
     expect(matchesRule(rule("films", "blaxploitation"), { genreIds: [], year: 1973 })).toBe(true);
+  });
+
+  it("gives Shows no genres", () => {
+    expect(CATEGORIES.shows).toEqual([]);
   });
 
   it("keeps ids unique within each section", () => {
@@ -45,12 +48,12 @@ describe("category copy", () => {
     expect(pageBigLine("made", null)).toBe("That made me");
     expect(pageBigLine("alltime", null)).toBe("All-time ten");
     expect(pageBigLine("genre", null)).toBe("By genre");
-    expect(pageBigLine("genre", "crime-dramas", "shows")).toBe("Crime Dramas");
+    expect(pageBigLine("genre", "80s-action")).toBe("80s Action");
   });
 
   it("writes headings per section", () => {
     expect(headingFor("made", null, "", "shows")).toEqual({ eyebrow: "The ten shows that made", big: "Me" });
-    expect(headingFor("genre", "sitcoms", "@k", "shows")).toEqual({ eyebrow: "The top ten sitcoms of", big: "@k" });
+    expect(headingFor("alltime", null, "@k", "shows")).toEqual({ eyebrow: "The all-time top ten of", big: "@k" });
     expect(headingFor("genre", "80s-action", "")).toEqual({ eyebrow: "My top ten", big: "80s Action" });
     expect(headingLine("genre", "rom-coms", "@k")).toBe("The top ten rom-coms of @k");
   });

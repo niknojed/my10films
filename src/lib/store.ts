@@ -1,6 +1,6 @@
-import { FORMATS, LAYOUTS, LIST_TYPES, MAX_FILMS, NAME_MAX, QUOTE_MAX, THEMES } from "./config";
+import { FORMATS, LAYOUTS, MAX_FILMS, NAME_MAX, QUOTE_MAX, THEMES } from "./config";
 import { isAnyCategoryId, isCategoryId } from "./categories";
-import type { Section } from "./sections";
+import { SECTION_LIST_TYPES, type Section } from "./sections";
 import type { Film, Format, Layout, ListType, Theme } from "./types";
 
 export interface MakerState {
@@ -112,7 +112,8 @@ export function reviveState(raw: unknown, section: Section = "films"): MakerStat
     format: oneOf(r.format, FORMATS, INITIAL_STATE.format),
     layout: oneOf(r.layout, LAYOUTS, INITIAL_STATE.layout),
     theme: oneOf(r.theme, THEMES, INITIAL_STATE.theme),
-    listType: oneOf(r.listType, LIST_TYPES, INITIAL_STATE.listType),
+    // A list type this section doesn't offer, such as "genre" on Shows, falls back to the default.
+    listType: oneOf(r.listType, SECTION_LIST_TYPES[section], INITIAL_STATE.listType),
     // Lists from before categories hold a TMDB genre name. It no longer applies, so it resets.
     genre: isCategoryId(section, r.genre) ? r.genre : null,
   };

@@ -2,9 +2,8 @@
 
 import { useEffect, useRef, type Dispatch } from "react";
 import { CATEGORIES } from "@/lib/categories";
-import { LIST_TYPES } from "@/lib/config";
 import { LIST_TYPE_LABELS } from "@/lib/listType";
-import type { Section } from "@/lib/sections";
+import { SECTION_LIST_TYPES, type Section } from "@/lib/sections";
 import type { MakerAction } from "@/lib/store";
 import type { ListType } from "@/lib/types";
 
@@ -36,7 +35,7 @@ export default function ListTypeChips({ section, listType, genre, dispatch }: Pr
     <div className="grid gap-3">
       <fieldset className="chips">
         <legend className="sr-only">List type</legend>
-        {LIST_TYPES.map((t) => (
+        {SECTION_LIST_TYPES[section].map((t) => (
           <label key={t}>
             <input
               type="radio"

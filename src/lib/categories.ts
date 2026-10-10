@@ -26,7 +26,6 @@ export interface Category {
 }
 
 // TMDB genre ids. Film: 28 Action, 35 Comedy, 27 Horror, 10749 Romance, 878 Science Fiction.
-// TV: 16 Animation, 35 Comedy, 80 Crime, 18 Drama, 10765 Sci-Fi & Fantasy.
 export const CATEGORIES: Record<Section, readonly Category[]> = {
   films: [
     { id: "80s-action", label: "80s Action", noun: "80s action films", scope: "action films released 1980–1989", rule: { genres: [28], from: 1980, to: 1989 } },
@@ -36,13 +35,8 @@ export const CATEGORIES: Record<Section, readonly Category[]> = {
     { id: "rom-coms", label: "Rom-Coms", noun: "rom-coms", scope: "films tagged both romance and comedy", rule: { genres: [10749, 35] } },
     { id: "sci-fi", label: "Sci-Fi", noun: "sci-fi films", scope: "science fiction", rule: { genres: [878] } },
   ],
-  shows: [
-    { id: "90s-tv", label: "90s TV", noun: "90s shows", scope: "shows that first aired 1990–1999", rule: { from: 1990, to: 1999 } },
-    { id: "sitcoms", label: "Sitcoms", noun: "sitcoms", scope: "shows TMDB tags as sitcoms", rule: { keyword: "sitcom" } },
-    { id: "crime-dramas", label: "Crime Dramas", noun: "crime dramas", scope: "shows tagged both crime and drama", rule: { genres: [80, 18] } },
-    { id: "animated", label: "Animated", noun: "animated shows", scope: "animated shows", rule: { genres: [16] } },
-    { id: "sci-fi-fantasy", label: "Sci-Fi & Fantasy", noun: "sci-fi and fantasy shows", scope: "sci-fi and fantasy shows", rule: { genres: [10765] } },
-  ],
+  // Shows have no genres: the Shows chips stop at That made me and All-time ten.
+  shows: [],
 };
 
 export function categoryById(section: Section, id: unknown): Category | null {

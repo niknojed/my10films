@@ -68,7 +68,9 @@ describe("list type in stored state", () => {
   it("resets genres saved before categories, and keeps sections apart", () => {
     expect(reviveState({ listType: "genre", genre: "Drama" })).toMatchObject({ genre: null });
     expect(reviveState({ listType: "genre", genre: "sitcoms" }, "films")).toMatchObject({ genre: null });
-    expect(reviveState({ listType: "genre", genre: "sitcoms" }, "shows")).toMatchObject({ genre: "sitcoms" });
+    // Shows have no genres, so a saved genre list there falls back to the default type.
+    expect(reviveState({ listType: "genre", genre: "sitcoms" }, "shows")).toMatchObject({ listType: "made", genre: null });
+    expect(reviveState({ listType: "alltime" }, "shows")).toMatchObject({ listType: "alltime" });
   });
 });
 
