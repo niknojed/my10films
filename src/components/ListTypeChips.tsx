@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type Dispatch } from "react";
+import { useEffect, useRef, type Dispatch } from "react";
 import { CATEGORIES } from "@/lib/categories";
 import { LIST_TYPES } from "@/lib/config";
 import { LIST_TYPE_LABELS } from "@/lib/listType";
@@ -19,6 +19,18 @@ interface Props {
 export default function ListTypeChips({ section, listType, genre, dispatch }: Props) {
   const categoryRow = useRef<HTMLFieldSetElement>(null);
   const categories = CATEGORIES[section];
+
+  // On a phone the category row scrolls sideways. Keep the selected chip in view, for instance when a
+  // saved category sits past the edge. Only the row scrolls, never the page.
+  useEffect(() => {
+    const row = categoryRow.current;
+    const chip = row?.querySelector<HTMLInputElement>("input:checked")?.parentElement;
+    if (!row || !chip || row.scrollWidth <= row.clientWidth) return;
+    const box = row.getBoundingClientRect();
+    const r = chip.getBoundingClientRect();
+    if (r.left >= box.left && r.right <= box.right) return;
+    row.scrollLeft += r.left < box.left ? r.left - box.left : r.right - box.right;
+  }, [genre, listType]);
 
   return (
     <div className="grid gap-3">

@@ -30,7 +30,7 @@ export interface Category {
 export const CATEGORIES: Record<Section, readonly Category[]> = {
   films: [
     { id: "80s-action", label: "80s Action", noun: "80s action films", scope: "action films released 1980–1989", rule: { genres: [28], from: 1980, to: 1989 } },
-    { id: "blaxploitation", label: "Blaxploitation", noun: "blaxploitation films", scope: "films TMDB tags as blaxploitation", rule: { keyword: "blaxploitation" } },
+    { id: "blaxploitation", label: "Blaxploitation", noun: "blaxploitation films", scope: "films TMDB tags as blaxploitation", rule: { keyword: "blaxploitation cinema" } },
     { id: "horror-pre-2000", label: "Horror Before 2000", noun: "pre-2000 horror films", scope: "horror released before 2000", rule: { genres: [27], to: 1999 } },
     { id: "indie", label: "Indie", noun: "indie films", scope: "films TMDB tags as independent", rule: { keyword: "independent film" } },
     { id: "rom-coms", label: "Rom-Coms", noun: "rom-coms", scope: "films tagged both romance and comedy", rule: { genres: [10749, 35] } },

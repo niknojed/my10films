@@ -559,6 +559,9 @@
   .chips {
     display: flex;
     gap: 0.375rem;
+    /* Fieldsets default to min-content width, which pushed the page sideways once the category row
+       had more chips than fit. Zero lets the row shrink and scroll inside itself. */
+    min-inline-size: 0;
     overflow-x: auto;
     scrollbar-width: none;
     /* room for the focus ring, which overflow would otherwise clip */
@@ -626,6 +629,12 @@
   }
   .hero .h-hero {
     display: block;
+    /* .h-hero caps lines at 14ch, which wrapped longer labels such as "Horror Before 2000". */
+    max-width: none;
+  }
+  /* Labels over 14 characters step down a size so they stay on one line on a phone. */
+  .hero .h-hero-long {
+    font-size: clamp(2.125rem, 7.5vw, 4.75rem);
   }
   .hero-kick {
     font: 500 clamp(0.875rem, 2.2vw, 1.0625rem) / 1.2 var(--font-mono);

@@ -84,6 +84,8 @@ export default function Maker({ mostPicked, section = "films" }: { mostPicked: P
   const remove = useCallback((id: number) => dispatch({ type: "remove", id }), []);
   const focusSearch = useCallback(() => searchRef.current?.focus(), []);
 
+  const bigLine = pageBigLine(state.listType, state.genre, section);
+
   return (
     <>
       <header className="grid gap-4 border-b-2 border-ink pb-6">
@@ -91,7 +93,7 @@ export default function Maker({ mostPicked, section = "films" }: { mostPicked: P
         {/* One heading in two sizes, so it reads as a sentence: "My 10 Films That made me". */}
         <h1 className="hero">
           <span className="hero-kick">{info.kicker}</span>{" "}
-          <span className="h-hero">{pageBigLine(state.listType, state.genre, section)}</span>
+          <span className={bigLine.length > 14 ? "h-hero h-hero-long" : "h-hero"}>{bigLine}</span>
         </h1>
         <p className="max-w-[46ch] text-mute">
           Search for ten {info.noun}, rank them, and save the poster for your feed or Story.
