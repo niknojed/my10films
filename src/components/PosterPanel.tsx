@@ -4,10 +4,12 @@ import { useEffect, useMemo, useRef, useState, type Dispatch } from "react";
 import { MAX_FILMS, NAME_MAX, QUOTE_MAX } from "@/lib/config";
 import { headingLine } from "@/lib/listType";
 import { drawPoster, POSTER_SIZE, type ArtMap } from "@/lib/poster";
+import type { Section } from "@/lib/sections";
 import type { MakerAction, MakerState } from "@/lib/store";
 import type { ApiError, Format, Layout, Theme } from "@/lib/types";
 
 interface Props {
+  section: Section;
   state: MakerState;
   dispatch: Dispatch<MakerAction>;
   art: ArtMap;
@@ -53,7 +55,9 @@ function toBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   });
 }
 
-export default function PosterPanel({ state, dispatch, art }: Props) {
+export default function PosterPanel({ section, state, dispatch, art }: Props) {
+  // Share links store film ids only. Shows need a media type in the database first.
+  const canShare = section === "films";
   const canvas = useRef<HTMLCanvasElement>(null);
   const [fontsReady, setFontsReady] = useState(false);
   const [busy, setBusy] = useState<"save" | "link" | null>(null);
@@ -103,7 +107,7 @@ export default function PosterPanel({ state, dispatch, art }: Props) {
   useEffect(() => {
     const el = canvas.current;
     if (!el) return;
-    const id = requestAnimationFrame(() => drawPoster(el, { ...state, films: state.picks }, art));
+    const id = requestAnimationFrame(() => drawPoster(el, { ...state, section, films: state.picks }, art));
     return () => cancelAnimationFrame(id);
     // `expanded` is here because the canvas moves into the dialog and back, and each new element needs drawing.
   }, [state, art, fontsReady, expanded]);
@@ -128,16 +132,16 @@ export default function PosterPanel({ state, dispatch, art }: Props) {
     setSaveNote({ tone: "info", text: "Rendering…" });
     try {
       await document.fonts?.ready;
-      if (!drawPoster(el, { ...state, films: state.picks }, art)) throw new Error("no-context");
+      if (!drawPoster(el, { ...state, section, films: state.picks }, art)) throw new Error("no-context");
       const blob = await toBlob(el);
-      const filename = `my-10-films-${state.format}.png`;
+      const filename = `my-10-${section}-${state.format}.png`;
       const file = new File([blob], filename, { type: "image/png" });
 
       // Phones get the share sheet, which is the direct route to Stories and the camera roll.
       const touch = window.matchMedia("(pointer: coarse)").matches;
       if (touch && typeof navigator.canShare === "function" && navigator.canShare({ files: [file] })) {
         try {
-          await navigator.share({ files: [file], title: headingLine(state.listType, state.genre, state.name) });
+          await navigator.share({ files: [file], title: headingLine(state.listType, state.genre, state.name, section) });
           setSaveNote({ tone: "info", text: "Sent to the share sheet." });
           return;
         } catch (err) {
@@ -171,7 +175,7 @@ export default function PosterPanel({ state, dispatch, art }: Props) {
   }
 
   async function makeLink() {
-    if (blocked || busy) return;
+    if (!canShare || blocked || busy) return;
     setBusy("link");
     setLinkNote({ tone: "info", text: "Saving your list…" });
     try {
@@ -224,7 +228,7 @@ export default function PosterPanel({ state, dispatch, art }: Props) {
       ? "Poster preview with ten empty slots"
       : `Poster preview listing ${state.picks.map((p, i) => `${i + 1}. ${p.title}`).join(", ")}`;
 
-  const saveHint = left > 0 ? `Add ${left} more to save the poster.` : needsGenre ? "Choose a genre to save the poster." : null;
+  const saveHint = left > 0 ? `Add ${left} more to save the poster.` : needsGenre ? "Choose a category to save the poster." : null;
 
   const preview = (
     <div className="frame">
@@ -361,6 +365,11 @@ export default function PosterPanel({ state, dispatch, art }: Props) {
         ) : null}
       </dialog>
 
+      {!canShare ? (
+        <div className="grid gap-2 border-t border-line pt-4">
+          <p className="hint">Share links for shows are next. For now, save the poster and post it.</p>
+        </div>
+      ) : (
       <div className="grid gap-2 border-t border-line pt-4">
         <button type="button" className="btn w-full" disabled={blocked || busy !== null} onClick={makeLink}>
           {busy === "link" ? "Saving…" : currentLink ? "Link is up to date" : "Get a share link"}
@@ -389,13 +398,14 @@ export default function PosterPanel({ state, dispatch, art }: Props) {
           {left > 0
             ? "A share link needs all ten."
             : needsGenre
-              ? "Choose a genre to get a share link."
+              ? "Choose a category to get a share link."
               : link && !currentLink
                 ? "Your list changed. Get a new link."
                 : linkNote?.text}
         </p>
         <p className="hint">A share link makes this list public.</p>
       </div>
+      )}
     </aside>
   );
 }

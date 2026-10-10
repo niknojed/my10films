@@ -1,5 +1,6 @@
 import { MAX_FILMS, SITE_NAME } from "./config";
 import { headingFor } from "./listType";
+import { SECTION_INFO, type Section } from "./sections";
 import type { Film, Format, Layout, ListType, Theme } from "./types";
 
 export const FONT_DISPLAY = '"Big Shoulders Display","Arial Narrow",Impact,sans-serif';
@@ -24,6 +25,14 @@ export const POSTER_THEMES: Record<Theme, ThemeColors> = {
   silver: { bg: "#E6E7EB", fg: "#15161C", mute: "#5F6270", accent: "#8E1B3A" },
   slate: { bg: "#0D0D0F", fg: "#F4F4F2", mute: "#9A9AA0", accent: "#F4F4F2", stripes: true },
 };
+
+/** Shows keep each theme's ground and type and swap the accent for broadcast blue. */
+const SHOWS_ACCENT: Record<Theme, string> = { silver: "#1D4F91", slate: "#9EC1FF", velvet: "#9EC1FF" };
+
+function themeFor(theme: Theme, section: Section): ThemeColors {
+  const base = POSTER_THEMES[theme];
+  return section === "shows" ? { ...base, accent: SHOWS_ACCENT[theme] } : base;
+}
 
 const CARD_PALETTES = [
   { bg: "#5A1228", c: "#7C1D3A", fg: "#F6D9A8" },
@@ -255,6 +264,8 @@ export interface PosterInput {
   theme: Theme;
   listType: ListType;
   genre: string | null;
+  /** Defaults to films. Shows get the blue accent, faint scan lines and their own footer. */
+  section?: Section;
 }
 
 /** Loaded poster art keyed by film id. A missing or null entry draws the generated title card. */
@@ -263,7 +274,8 @@ export type ArtMap = ReadonlyMap<number, HTMLImageElement | null>;
 export function drawPoster(canvas: HTMLCanvasElement, input: PosterInput, art: ArtMap): boolean {
   const feed = input.format === "feed";
   const { w: W, h: H } = POSTER_SIZE[input.format];
-  const T = POSTER_THEMES[input.theme];
+  const section = input.section ?? "films";
+  const T = themeFor(input.theme, section);
   if (canvas.width !== W || canvas.height !== H) {
     canvas.width = W;
     canvas.height = H;
@@ -279,6 +291,15 @@ export function drawPoster(canvas: HTMLCanvasElement, input: PosterInput, art: A
   ctx.globalAlpha = 1;
   ctx.fillStyle = T.bg;
   ctx.fillRect(0, 0, W, H);
+
+  if (section === "shows") {
+    // Faint horizontal scan lines across the ground. Low enough to read as texture, not pattern.
+    ctx.save();
+    ctx.globalAlpha = 0.035;
+    ctx.fillStyle = T.fg;
+    for (let sy = 0; sy < H; sy += 6) ctx.fillRect(0, sy, W, 2);
+    ctx.restore();
+  }
 
   if (T.stripes) {
     const bh = feed ? 64 : 48;
@@ -302,7 +323,7 @@ export function drawPoster(canvas: HTMLCanvasElement, input: PosterInput, art: A
   }
 
   // header
-  const heading = headingFor(input.listType, input.genre, input.name);
+  const heading = headingFor(input.listType, input.genre, input.name, section);
   const es = feed ? 30 : 23;
   ctx.textBaseline = "alphabetic";
   ctx.textAlign = "left";
@@ -415,7 +436,7 @@ export function drawPoster(canvas: HTMLCanvasElement, input: PosterInput, art: A
   ctx.stroke();
   ctx.globalAlpha = 1;
   ctx.textAlign = "left";
-  ctx.fillText(SITE_NAME.toUpperCase(), M, H - M);
+  ctx.fillText((section === "shows" ? SECTION_INFO.shows.kicker : SITE_NAME).toUpperCase(), M, H - M);
   ctx.textAlign = "right";
   ctx.fillText(String(new Date().getFullYear()), W - M, H - M);
   tracking(ctx, 0);

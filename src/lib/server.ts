@@ -4,7 +4,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { clientIp } from "./ip";
 import { MOST_PICKED_LIMIT, MOST_PICKED_MIN } from "./config";
 import { getFilm, TmdbError } from "./tmdb";
-import { isGenre } from "./listType";
+import { isStoredGenre } from "./categories";
 import type { Film, Layout, ListType, PickedFilm, SharedList, Theme } from "./types";
 import { isSlug } from "./validate";
 
@@ -99,7 +99,7 @@ export async function getSharedList(slug: string): Promise<SharedList | null> {
     layout: data.layout as Layout,
     theme: data.theme as Theme,
     listType: (data.list_type as ListType) ?? "made",
-    genre: data.list_type === "genre" && isGenre(data.genre) ? data.genre : null,
+    genre: data.list_type === "genre" && isStoredGenre(data.genre) ? data.genre : null,
     films,
     createdAt: data.created_at as string,
   };

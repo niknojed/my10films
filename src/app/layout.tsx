@@ -8,7 +8,7 @@ import "@fontsource/schibsted-grotesk/400";
 import "@fontsource/schibsted-grotesk/600";
 import "./globals.css";
 import { SITE_NAME, THEMES, siteUrl } from "@/lib/config";
-import { INITIAL_STATE, STORAGE_KEY } from "@/lib/store";
+import { INITIAL_STATE, SHOWS_STORAGE_KEY, STORAGE_KEY } from "@/lib/store";
 
 const description =
   "Pick the ten films that made you, put them in order, and save one poster for your feed or Story. No account.";
@@ -31,10 +31,11 @@ export const viewport: Viewport = {
   ],
 };
 
-// Applies the saved poster theme to the page before first paint, so a returning visitor never sees
-// the default palette flash first. Maker keeps it in sync after that. Shared lists (/l/) start on the
-// default and PageTheme switches them to the creator's theme.
-const themeScript = `(function(){var t;if(location.pathname.indexOf("/l/")!==0){try{t=JSON.parse(localStorage.getItem(${JSON.stringify(STORAGE_KEY)})||"null");t=t&&t.theme}catch(e){}}document.documentElement.dataset.theme=${JSON.stringify(THEMES)}.indexOf(t)>-1?t:${JSON.stringify(INITIAL_STATE.theme)}})()`;
+// Applies the saved poster theme and the section to the page before first paint, so a returning visitor
+// never sees the default palette flash first. Films and shows keep separate lists, each with its own
+// theme. Maker keeps both in sync after that. Shared lists (/l/) start on the default and PageTheme
+// switches them to the creator's theme.
+const themeScript = `(function(){var p=location.pathname,s=p.indexOf("/shows")===0?"shows":"films",t;if(p.indexOf("/l/")!==0){try{t=JSON.parse(localStorage.getItem(s==="shows"?${JSON.stringify(SHOWS_STORAGE_KEY)}:${JSON.stringify(STORAGE_KEY)})||"null");t=t&&t.theme}catch(e){}}var d=document.documentElement;d.dataset.section=s;d.dataset.theme=${JSON.stringify(THEMES)}.indexOf(t)>-1?t:${JSON.stringify(INITIAL_STATE.theme)}})()`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -55,7 +56,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </main>
           <footer className="grid gap-3 border-t border-line pt-4 text-[0.8125rem] text-mute">
             <nav aria-label="Site" className="flex flex-wrap gap-x-5 gap-y-2">
-              <Link href="/">Make a poster</Link>
+              <Link href="/">Films</Link>
+              <Link href="/shows">Shows</Link>
               <Link href="/about">Credits and takedowns</Link>
               <Link href="/privacy">Privacy</Link>
               <a href="https://kinan.design">Meet the creator</a>

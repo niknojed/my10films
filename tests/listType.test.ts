@@ -39,15 +39,18 @@ describe("list type in saves", () => {
     expect(r.ok && [r.value.listType, r.value.genre]).toEqual(["made", null]);
   });
 
-  it("requires a known genre for genre lists", () => {
+  it("requires a film category for genre lists", () => {
     expect(parseSavePayload({ ...base, listType: "genre" }).ok).toBe(false);
     expect(parseSavePayload({ ...base, listType: "genre", genre: "Vaporwave" }).ok).toBe(false);
-    const r = parseSavePayload({ ...base, listType: "genre", genre: "Horror" });
-    expect(r.ok && r.value.genre).toBe("Horror");
+    // Old TMDB genre names and show categories can't be saved as new film lists.
+    expect(parseSavePayload({ ...base, listType: "genre", genre: "Horror" }).ok).toBe(false);
+    expect(parseSavePayload({ ...base, listType: "genre", genre: "sitcoms" }).ok).toBe(false);
+    const r = parseSavePayload({ ...base, listType: "genre", genre: "80s-action" });
+    expect(r.ok && r.value.genre).toBe("80s-action");
   });
 
   it("drops a genre sent with another type", () => {
-    const r = parseSavePayload({ ...base, listType: "alltime", genre: "Horror" });
+    const r = parseSavePayload({ ...base, listType: "alltime", genre: "80s-action" });
     expect(r.ok && [r.value.listType, r.value.genre]).toEqual(["alltime", null]);
   });
 
@@ -58,8 +61,14 @@ describe("list type in saves", () => {
 
 describe("list type in stored state", () => {
   it("revives valid values and defaults the rest", () => {
-    expect(reviveState({ listType: "genre", genre: "Drama" })).toMatchObject({ listType: "genre", genre: "Drama" });
+    expect(reviveState({ listType: "genre", genre: "rom-coms" })).toMatchObject({ listType: "genre", genre: "rom-coms" });
     expect(reviveState({ listType: "nope", genre: "Vaporwave" })).toMatchObject({ listType: "made", genre: null });
+  });
+
+  it("resets genres saved before categories, and keeps sections apart", () => {
+    expect(reviveState({ listType: "genre", genre: "Drama" })).toMatchObject({ genre: null });
+    expect(reviveState({ listType: "genre", genre: "sitcoms" }, "films")).toMatchObject({ genre: null });
+    expect(reviveState({ listType: "genre", genre: "sitcoms" }, "shows")).toMatchObject({ genre: "sitcoms" });
   });
 });
 

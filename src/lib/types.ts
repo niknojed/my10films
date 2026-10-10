@@ -6,7 +6,7 @@ export type Format = (typeof FORMATS)[number];
 export type ListType = (typeof LIST_TYPES)[number];
 
 export interface Film {
-  /** TMDB movie id. */
+  /** TMDB id: a movie id on the films page, a TV id on the shows page. The two never mix in one list. */
   id: number;
   title: string;
   /** Four-digit release year, or "" when TMDB has no date. */
@@ -26,7 +26,7 @@ export interface SharedList {
   layout: Layout;
   theme: Theme;
   listType: ListType;
-  /** Set only when listType is "genre". */
+  /** Set only when listType is "genre": a category id, or a TMDB genre name on older lists. */
   genre: string | null;
   films: Film[];
   createdAt: string;

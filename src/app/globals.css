@@ -62,6 +62,25 @@
   color-scheme: dark;
 }
 
+/* Shows: the same three themes with a broadcast-blue accent and rounder frames, set by
+   data-section on <html>. Compound selectors so they outrank the theme blocks above. */
+:root {
+  --radius-card: 3px;
+}
+:root[data-section="shows"] {
+  --radius-card: 10px;
+}
+:root[data-section="shows"],
+:root[data-section="shows"][data-theme="silver"] {
+  --color-accent: #1d4f91;
+  --color-accent-ink: #ffffff;
+}
+:root[data-section="shows"][data-theme="slate"],
+:root[data-section="shows"][data-theme="velvet"] {
+  --color-accent: #9ec1ff;
+  --color-accent-ink: #0d0d0f;
+}
+
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
@@ -278,7 +297,7 @@
     position: relative;
     aspect-ratio: 2 / 3;
     width: 100%;
-    border-radius: 3px;
+    border-radius: var(--radius-card);
     overflow: hidden;
     background: var(--color-surface);
   }
@@ -317,7 +336,7 @@
     justify-items: center;
     gap: 0.25rem;
     border: 1.5px dashed var(--color-line);
-    border-radius: 3px;
+    border-radius: var(--radius-card);
     color: var(--color-mute);
     cursor: pointer;
   }
@@ -581,6 +600,95 @@
     outline: 3px solid var(--color-accent);
     outline-offset: 2px;
   }
+  .chips-sub label {
+    min-height: 2.5rem;
+    font-weight: 500;
+  }
+  .chips-sub label:has(input:checked) {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: var(--color-accent-ink);
+  }
+  .chips-legend {
+    float: left;
+    align-self: center;
+    margin-right: 0.25rem;
+    font: 500 0.75rem/1.3 var(--font-mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-mute);
+  }
+
+  /* Page heading: "My 10 Films" small, then the list type large. One h1, read as one sentence. */
+  .hero {
+    display: grid;
+    gap: 0.5rem;
+  }
+  .hero .h-hero {
+    display: block;
+  }
+  .hero-kick {
+    font: 500 clamp(0.875rem, 2.2vw, 1.0625rem) / 1.2 var(--font-mono);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  /* Films / Shows switcher */
+  .switch {
+    display: inline-flex;
+    justify-self: start;
+    gap: 2px;
+    padding: 3px;
+    border: 1.5px solid var(--color-ink);
+    border-radius: 999px;
+  }
+  .switch a {
+    display: grid;
+    place-items: center;
+    min-height: 2.5rem;
+    min-width: 5.5rem;
+    padding: 0 1rem;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    text-decoration: none;
+    color: var(--color-ink);
+  }
+  .switch a[aria-current="page"] {
+    background: var(--color-ink);
+    color: var(--color-bg);
+  }
+  .switch a:not([aria-current="page"]):hover {
+    background: var(--color-surface);
+  }
+
+  /* Category scope line above search results */
+  .scope {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    padding: 0.5rem 0.75rem;
+    border-left: 3px solid var(--color-accent);
+    background: var(--color-surface);
+    font-size: 0.875rem;
+  }
+  .scope label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    color: var(--color-mute);
+    cursor: pointer;
+  }
+  .scope input {
+    width: 1.125rem;
+    height: 1.125rem;
+    accent-color: var(--color-accent);
+  }
+
   .select {
     appearance: none;
     padding-right: 2.25rem;

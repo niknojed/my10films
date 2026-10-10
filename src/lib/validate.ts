@@ -1,5 +1,5 @@
 import { LAYOUTS, LIST_TYPES, MAX_FILMS, NAME_MAX, QUOTE_MAX, THEMES } from "./config";
-import { isGenre } from "./listType";
+import { isCategoryId } from "./categories";
 import type { Layout, ListType, Theme } from "./types";
 
 export interface SavePayload {
@@ -44,7 +44,8 @@ export function parseSavePayload(body: unknown): Parsed<SavePayload> {
   }
   let genre: string | null = null;
   if (listType === "genre") {
-    if (!isGenre(b.genre)) return { ok: false, message: "Choose a genre for this list." };
+    // Share links exist for films only. Shows come with a later migration.
+    if (!isCategoryId("films", b.genre)) return { ok: false, message: "Choose a category for this list." };
     genre = b.genre;
   }
   const ids = b.filmIds;

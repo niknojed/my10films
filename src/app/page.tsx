@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Maker from "@/components/Maker";
-import { SHOW_MOST_PICKED, SITE_NAME } from "@/lib/config";
+import { SHOW_MOST_PICKED } from "@/lib/config";
 import { getMostPicked } from "@/lib/server";
 
 export const revalidate = 600;
@@ -45,14 +45,8 @@ export default async function Home() {
   const mostPicked = SHOW_MOST_PICKED ? await getMostPicked() : [];
   return (
     <>
-      <header className="grid gap-3 border-b-2 border-ink pb-6">
-        <p className="mono text-accent">{SITE_NAME}</p>
-        <h1 className="h-hero">The ten films that made you</h1>
-        <p className="max-w-[46ch] text-mute">
-          Search for ten films, rank them, and save the poster for your feed or Story.
-        </p>
-      </header>
-      <Maker mostPicked={mostPicked} />
+      {/* Maker renders the heading, so its large line can follow the list type. */}
+      <Maker mostPicked={mostPicked} section="films" />
 
       {/* Server-rendered so the explanation is in the initial HTML. */}
       <section className="guide" aria-label="About My 10 Films">
@@ -65,7 +59,7 @@ export default async function Home() {
           </p>
           <p>
             It&rsquo;s a film version of the &ldquo;my 9 albums&rdquo; format: one image that says something about you
-            through what you chose. Pick the ten that made you, your all-time ten, or your ten favorites in one genre.
+            through what you chose. Pick the ten that made you, your all-time ten, or your top ten in one category. Shows have their own page.
           </p>
         </div>
 

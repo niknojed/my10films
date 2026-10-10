@@ -1,8 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { categoryById } from "@/lib/categories";
 import { MAX_FILMS } from "@/lib/config";
-import { INITIAL_STATE, loadState, makerReducer, saveState } from "@/lib/store";
+import { pageBigLine } from "@/lib/listType";
+import { SECTION_INFO, type Section } from "@/lib/sections";
+import { INITIAL_STATE, loadState, makerReducer, saveState, storageKey } from "@/lib/store";
 import type { Film, PickedFilm } from "@/lib/types";
 import { useArt } from "@/lib/useArt";
 import Art from "./Art";
@@ -10,8 +13,10 @@ import Board from "./Board";
 import ListTypeChips from "./ListTypeChips";
 import PosterPanel from "./PosterPanel";
 import Search from "./Search";
+import SectionSwitch from "./SectionSwitch";
 
-export default function Maker({ mostPicked }: { mostPicked: PickedFilm[] }) {
+export default function Maker({ mostPicked, section = "films" }: { mostPicked: PickedFilm[]; section?: Section }) {
+  const info = SECTION_INFO[section];
   const [state, dispatch] = useReducer(makerReducer, INITIAL_STATE);
   const [hydrated, setHydrated] = useState(false);
   const [storageOk, setStorageOk] = useState(true);
@@ -20,13 +25,19 @@ export default function Maker({ mostPicked }: { mostPicked: PickedFilm[] }) {
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    dispatch({ type: "hydrate", state: loadState() });
+    dispatch({ type: "hydrate", state: loadState(section) });
     setHydrated(true);
-  }, []);
+  }, [section]);
 
   useEffect(() => {
-    if (hydrated) setStorageOk(saveState(state));
-  }, [state, hydrated]);
+    if (hydrated) setStorageOk(saveState(state, section));
+  }, [state, hydrated, section]);
+
+  // Shows swap the accent and round the frames. The layout script sets this before paint on a full
+  // load; this keeps it right when the switcher moves between sections without one.
+  useEffect(() => {
+    document.documentElement.dataset.section = section;
+  }, [section]);
 
   // The page wears the poster theme. The layout script set it before paint; this follows changes.
   useEffect(() => {
@@ -40,11 +51,13 @@ export default function Maker({ mostPicked }: { mostPicked: PickedFilm[] }) {
   // Another tab changed the list: adopt it so two tabs never overwrite each other blindly.
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
-      if (e.storageArea === window.localStorage) dispatch({ type: "hydrate", state: loadState() });
+      if (e.storageArea === window.localStorage && e.key === storageKey(section)) {
+        dispatch({ type: "hydrate", state: loadState(section) });
+      }
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
-  }, []);
+  }, [section]);
 
   const announce = useCallback((message: string) => {
     setLive("");
@@ -55,6 +68,7 @@ export default function Maker({ mostPicked }: { mostPicked: PickedFilm[] }) {
   const full = state.picks.length >= MAX_FILMS;
   const left = MAX_FILMS - state.picks.length;
   const art = useArt(state.picks, state.layout === "top");
+  const category = state.listType === "genre" ? categoryById(section, state.genre) : null;
 
   const add = useCallback(
     (film: Film) => {
@@ -71,12 +85,23 @@ export default function Maker({ mostPicked }: { mostPicked: PickedFilm[] }) {
   const focusSearch = useCallback(() => searchRef.current?.focus(), []);
 
   return (
-    // Phones read top to bottom: build, poster, then Most picked to browse. On wide screens Most picked
-    // sits under the list while the poster spans both rows on the right.
+    <>
+      <header className="grid gap-4 border-b-2 border-ink pb-6">
+        <SectionSwitch current={section} />
+        {/* One heading in two sizes, so it reads as a sentence: "My 10 Films That made me". */}
+        <h1 className="hero">
+          <span className="hero-kick">{info.kicker}</span>{" "}
+          <span className="h-hero">{pageBigLine(state.listType, state.genre, section)}</span>
+        </h1>
+        <p className="max-w-[46ch] text-mute">
+          Search for ten {info.noun}, rank them, and save the poster for your feed or Story.
+        </p>
+        <ListTypeChips section={section} listType={state.listType} genre={state.genre} dispatch={dispatch} />
+      </header>
+      {/* Phones read top to bottom: build, poster, then Most picked to browse. On wide screens Most picked
+          sits under the list while the poster spans both rows on the right. */}
     <div className="grid min-w-0 gap-9 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-x-14 lg:gap-y-6">
       <section className="grid min-w-0 content-start gap-6 lg:col-start-1 lg:row-start-1" aria-label="Build your list">
-        <ListTypeChips listType={state.listType} genre={state.genre} dispatch={dispatch} />
-
         <div className="grid gap-3">
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
             <h2 className="h-sec">Pick</h2>
@@ -85,7 +110,7 @@ export default function Maker({ mostPicked }: { mostPicked: PickedFilm[] }) {
               {left ? ` · ${left} to go` : " · full"}
             </p>
           </div>
-          <Search ref={searchRef} pickedIds={pickedIds} full={full} onAdd={add} />
+          <Search ref={searchRef} section={section} category={category} pickedIds={pickedIds} full={full} onAdd={add} />
           {!storageOk ? (
             <p className="status status-error" role="status">
               This browser is blocking storage, so your list will be lost when you close the tab.
@@ -131,7 +156,7 @@ export default function Maker({ mostPicked }: { mostPicked: PickedFilm[] }) {
         </div>
       </section>
 
-      <PosterPanel state={state} dispatch={dispatch} art={art} />
+      <PosterPanel section={section} state={state} dispatch={dispatch} art={art} />
       {mostPicked.length > 0 ? (
         <section
           className="grid min-w-0 gap-3 border-t border-line pt-6 lg:col-start-1 lg:row-start-2"
@@ -167,5 +192,6 @@ export default function Maker({ mostPicked }: { mostPicked: PickedFilm[] }) {
         {live}
       </p>
     </div>
+    </>
   );
 }
