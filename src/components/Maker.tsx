@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { categoryById } from "@/lib/categories";
+import { categoryById, decadeCategory } from "@/lib/categories";
 import { MAX_FILMS } from "@/lib/config";
-import { pageBigLine } from "@/lib/listType";
+import { pageBigLine, displayCase } from "@/lib/listType";
 import { SECTION_INFO, type Section } from "@/lib/sections";
 import { INITIAL_STATE, loadState, makerReducer, saveState, storageKey } from "@/lib/store";
 import type { Film, PickedFilm } from "@/lib/types";
@@ -68,7 +68,13 @@ export default function Maker({ mostPicked, section = "films" }: { mostPicked: P
   const full = state.picks.length >= MAX_FILMS;
   const left = MAX_FILMS - state.picks.length;
   const art = useArt(state.picks, state.layout === "top");
-  const category = state.listType === "genre" ? categoryById(section, state.genre) : null;
+  // The search scope: a genre category, or a decade, which is a scope of the same shape.
+  const category =
+    state.listType === "genre"
+      ? categoryById(section, state.genre)
+      : state.listType === "decade" && state.decade
+        ? decadeCategory(state.decade)
+        : null;
 
   const add = useCallback(
     (film: Film) => {
@@ -84,7 +90,7 @@ export default function Maker({ mostPicked, section = "films" }: { mostPicked: P
   const remove = useCallback((id: number) => dispatch({ type: "remove", id }), []);
   const focusSearch = useCallback(() => searchRef.current?.focus(), []);
 
-  const bigLine = pageBigLine(state.listType, state.genre, section);
+  const bigLine = pageBigLine(state.listType, state.genre, section, state.decade);
 
   return (
     <>
@@ -93,12 +99,21 @@ export default function Maker({ mostPicked, section = "films" }: { mostPicked: P
         {/* One heading in two sizes, so it reads as a sentence: "My 10 Films That made me". */}
         <h1 className="hero">
           <span className="hero-kick">{info.kicker}</span>{" "}
-          <span className={bigLine.length > 14 ? "h-hero h-hero-long" : "h-hero"}>{bigLine}</span>
+          {/* Capitalized in code, not CSS, so a decade keeps its lowercase "s". */}
+          <span className={`${bigLine.length > 14 ? "h-hero h-hero-long" : "h-hero"} normal-case`}>
+            {displayCase(bigLine)}
+          </span>
         </h1>
         <p className="max-w-[46ch] text-mute">
           Search for ten {info.noun}, rank them, and save the poster for your feed or Story.
         </p>
-        <ListTypeChips section={section} listType={state.listType} genre={state.genre} dispatch={dispatch} />
+        <ListTypeChips
+          section={section}
+          listType={state.listType}
+          genre={state.genre}
+          decade={state.decade}
+          dispatch={dispatch}
+        />
       </header>
       {/* Phones read top to bottom: build, poster, then Most picked to browse. On wide screens Most picked
           sits under the list while the poster spans both rows on the right. */}

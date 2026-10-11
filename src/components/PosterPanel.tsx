@@ -57,7 +57,6 @@ function toBlob(canvas: HTMLCanvasElement): Promise<Blob> {
 
 export default function PosterPanel({ section, state, dispatch, art }: Props) {
   // Share links store film ids only. Shows need a media type in the database first.
-  const canShare = section === "films";
   const canvas = useRef<HTMLCanvasElement>(null);
   const [fontsReady, setFontsReady] = useState(false);
   const [busy, setBusy] = useState<"save" | "link" | null>(null);
@@ -72,7 +71,8 @@ export default function PosterPanel({ section, state, dispatch, art }: Props) {
 
   const left = MAX_FILMS - state.picks.length;
   const needsGenre = state.listType === "genre" && !state.genre;
-  const blocked = left > 0 || needsGenre;
+  const needsDecade = state.listType === "decade" && !state.decade;
+  const blocked = left > 0 || needsGenre || needsDecade;
   const size = POSTER_SIZE[state.format];
   const listKey = useMemo(
     () =>
@@ -84,8 +84,9 @@ export default function PosterPanel({ section, state, dispatch, art }: Props) {
         state.theme,
         state.listType,
         state.listType === "genre" ? state.genre : null,
+        state.listType === "decade" ? state.decade : null,
       ]),
-    [state.picks, state.name, state.quote, state.layout, state.theme, state.listType, state.genre],
+    [state.picks, state.name, state.quote, state.layout, state.theme, state.listType, state.genre, state.decade],
   );
   const currentLink = link && link.key === listKey ? link.url : null;
 
@@ -141,7 +142,7 @@ export default function PosterPanel({ section, state, dispatch, art }: Props) {
       const touch = window.matchMedia("(pointer: coarse)").matches;
       if (touch && typeof navigator.canShare === "function" && navigator.canShare({ files: [file] })) {
         try {
-          await navigator.share({ files: [file], title: headingLine(state.listType, state.genre, state.name, section) });
+          await navigator.share({ files: [file], title: headingLine(state.listType, state.genre, state.name, section, state.decade) });
           setSaveNote({ tone: "info", text: "Sent to the share sheet." });
           return;
         } catch (err) {
@@ -175,7 +176,7 @@ export default function PosterPanel({ section, state, dispatch, art }: Props) {
   }
 
   async function makeLink() {
-    if (!canShare || blocked || busy) return;
+    if (blocked || busy) return;
     setBusy("link");
     setLinkNote({ tone: "info", text: "Saving your list…" });
     try {
@@ -187,8 +188,10 @@ export default function PosterPanel({ section, state, dispatch, art }: Props) {
           quote: state.quote,
           layout: state.layout,
           theme: state.theme,
+          section,
           listType: state.listType,
           genre: state.listType === "genre" ? state.genre : null,
+          decade: state.listType === "decade" ? state.decade : null,
           filmIds: state.picks.map((p) => p.id),
         }),
       });
@@ -228,7 +231,14 @@ export default function PosterPanel({ section, state, dispatch, art }: Props) {
       ? "Poster preview with ten empty slots"
       : `Poster preview listing ${state.picks.map((p, i) => `${i + 1}. ${p.title}`).join(", ")}`;
 
-  const saveHint = left > 0 ? `Add ${left} more to save the poster.` : needsGenre ? "Choose a category to save the poster." : null;
+  const saveHint =
+    left > 0
+      ? `Add ${left} more to save the poster.`
+      : needsGenre
+        ? "Choose a category to save the poster."
+        : needsDecade
+          ? "Choose a decade to save the poster."
+          : null;
 
   const preview = (
     <div className="frame">
@@ -365,11 +375,6 @@ export default function PosterPanel({ section, state, dispatch, art }: Props) {
         ) : null}
       </dialog>
 
-      {!canShare ? (
-        <div className="grid gap-2 border-t border-line pt-4">
-          <p className="hint">Share links for shows are next. For now, save the poster and post it.</p>
-        </div>
-      ) : (
       <div className="grid gap-2 border-t border-line pt-4">
         <button type="button" className="btn w-full" disabled={blocked || busy !== null} onClick={makeLink}>
           {busy === "link" ? "Saving…" : currentLink ? "Link is up to date" : "Get a share link"}
@@ -399,13 +404,14 @@ export default function PosterPanel({ section, state, dispatch, art }: Props) {
             ? "A share link needs all ten."
             : needsGenre
               ? "Choose a category to get a share link."
+              : needsDecade
+                ? "Choose a decade to get a share link."
               : link && !currentLink
                 ? "Your list changed. Get a new link."
                 : linkNote?.text}
         </p>
         <p className="hint">A share link makes this list public.</p>
       </div>
-      )}
     </aside>
   );
 }

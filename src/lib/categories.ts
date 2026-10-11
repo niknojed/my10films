@@ -85,3 +85,30 @@ export function matchesRule(rule: CategoryRule, item: { genreIds: readonly numbe
   }
   return true;
 }
+
+/** Decades for "By decade" lists, films only. Each is a scope with the same shape as a category. */
+export const DECADES = [1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020] as const;
+
+export function isDecade(v: unknown): v is number {
+  return typeof v === "number" && (DECADES as readonly number[]).includes(v);
+}
+
+/** "1980s" as a scope: films released 1980–1989. Its id is the label, such as "1980s". */
+export function decadeCategory(decade: number): Category {
+  return {
+    id: `${decade}s`,
+    label: `${decade}s`,
+    noun: `${decade}s films`,
+    scope: `films released ${decade}–${decade + 9}`,
+    rule: { from: decade, to: decade + 9 },
+  };
+}
+
+/** A search scope by id: a genre category, or for films a decade such as "1980s". */
+export function scopeById(section: Section, id: unknown): Category | null {
+  const category = categoryById(section, id);
+  if (category || section !== "films" || typeof id !== "string") return category;
+  const m = /^(\d{4})s$/.exec(id);
+  const decade = m ? Number(m[1]) : null;
+  return isDecade(decade) ? decadeCategory(decade) : null;
+}

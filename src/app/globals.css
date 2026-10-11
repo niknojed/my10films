@@ -571,6 +571,15 @@
   .chips::-webkit-scrollbar {
     display: none;
   }
+  /* Four list types don't fit one row on a phone, and a lone chip on a second line looks broken.
+     Below 30rem they form an even 2 × 2 grid instead; two chips, as on Shows, stay a row. */
+  @media (max-width: 29.99rem) {
+    .chips-types:has(label:nth-of-type(4)) {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      overflow: visible;
+    }
+  }
   .chips label {
     position: relative;
     flex: none;

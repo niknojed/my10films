@@ -1,3 +1,4 @@
+import type { Section } from "./sections";
 import type { FORMATS, LAYOUTS, LIST_TYPES, THEMES } from "./config";
 
 export type Layout = (typeof LAYOUTS)[number];
@@ -21,6 +22,7 @@ export interface PickedFilm extends Film {
 
 export interface SharedList {
   slug: string;
+  section: Section;
   name: string;
   quote: string;
   layout: Layout;
@@ -28,6 +30,8 @@ export interface SharedList {
   listType: ListType;
   /** Set only when listType is "genre": a category id, or a TMDB genre name on older lists. */
   genre: string | null;
+  /** Set only when listType is "decade", such as 1980. */
+  decade: number | null;
   films: Film[];
   createdAt: string;
 }

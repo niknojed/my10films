@@ -1,5 +1,5 @@
 import { FORMATS, LAYOUTS, MAX_FILMS, NAME_MAX, QUOTE_MAX, THEMES } from "./config";
-import { isAnyCategoryId, isCategoryId } from "./categories";
+import { isAnyCategoryId, isCategoryId, isDecade } from "./categories";
 import { SECTION_LIST_TYPES, type Section } from "./sections";
 import type { Film, Format, Layout, ListType, Theme } from "./types";
 
@@ -13,6 +13,8 @@ export interface MakerState {
   listType: ListType;
   /** Category id for "genre" lists. Kept when switching away, so switching back restores it. */
   genre: string | null;
+  /** Start year for "decade" lists, such as 1980. Kept when switching away, like genre. */
+  decade: number | null;
 }
 
 export const INITIAL_STATE: MakerState = {
@@ -24,6 +26,7 @@ export const INITIAL_STATE: MakerState = {
   theme: "silver",
   listType: "made",
   genre: null,
+  decade: null,
 };
 
 export type MakerAction =
@@ -38,7 +41,8 @@ export type MakerAction =
   | { type: "layout"; value: Layout }
   | { type: "theme"; value: Theme }
   | { type: "listType"; value: ListType }
-  | { type: "genre"; value: string | null };
+  | { type: "genre"; value: string | null }
+  | { type: "decade"; value: number | null };
 
 export function makerReducer(state: MakerState, action: MakerAction): MakerState {
   switch (action.type) {
@@ -73,6 +77,8 @@ export function makerReducer(state: MakerState, action: MakerAction): MakerState
       return { ...state, theme: action.value };
     case "listType":
       return { ...state, listType: action.value };
+    case "decade":
+      return { ...state, decade: isDecade(action.value) ? action.value : null };
     case "genre":
       return { ...state, genre: isAnyCategoryId(action.value) ? action.value : null };
   }
@@ -116,6 +122,7 @@ export function reviveState(raw: unknown, section: Section = "films"): MakerStat
     listType: oneOf(r.listType, SECTION_LIST_TYPES[section], INITIAL_STATE.listType),
     // Lists from before categories hold a TMDB genre name. It no longer applies, so it resets.
     genre: isCategoryId(section, r.genre) ? r.genre : null,
+    decade: section === "films" && isDecade(r.decade) ? r.decade : null,
   };
 }
 

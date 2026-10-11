@@ -3,7 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import Art from "@/components/Art";
 import PageTheme from "@/components/PageTheme";
-import { headingFor, headingLine } from "@/lib/listType";
+import { displayCase, headingFor, headingLine } from "@/lib/listType";
+import { SECTION_INFO } from "@/lib/sections";
 import { getSharedList } from "@/lib/server";
 
 export const revalidate = 3600;
@@ -14,7 +15,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
   const list = await getSharedList(slug).catch(() => null);
   if (!list) return { title: "List not found", robots: { index: false } };
-  const title = headingLine(list.listType, list.genre, list.name);
+  const title = headingLine(list.listType, list.genre, list.name, list.section, list.decade);
   const description = list.films.map((f, i) => `${i + 1}. ${f.title}`).join(" · ");
   return {
     title,
@@ -31,15 +32,16 @@ export default async function SharedListPage({ params }: Params) {
   const list = await getSharedList(slug);
   if (!list) notFound();
   const [first, ...rest] = list.films;
-  const heading = headingFor(list.listType, list.genre, list.name);
+  const heading = headingFor(list.listType, list.genre, list.name, list.section, list.decade);
 
   return (
     <>
-      {/* The page wears the creator's theme, set before the content below paints. */}
-      <PageTheme theme={list.theme} />
+      {/* The page wears the creator's theme, and the Shows accent for shows, set before the content paints. */}
+      <PageTheme theme={list.theme} section={list.section} />
       <header className="grid gap-3 border-b-2 border-ink pb-6">
-        <p className="mono text-accent">{heading.eyebrow}</p>
-        <h1 className="h-hero [overflow-wrap:anywhere]">{heading.big}</h1>
+        {/* Capitalized in code, not CSS, so a decade keeps its lowercase "s". */}
+        <p className="mono text-accent normal-case">{displayCase(heading.eyebrow)}</p>
+        <h1 className="h-hero normal-case [overflow-wrap:anywhere]">{displayCase(heading.big)}</h1>
         {list.quote ? <p className="max-w-[46ch] text-lg">“{list.quote}”</p> : null}
       </header>
 
@@ -77,7 +79,7 @@ export default async function SharedListPage({ params }: Params) {
       </section>
 
       <p>
-        <Link href="/" className="btn btn-primary">
+        <Link href={SECTION_INFO[list.section].path} className="btn btn-primary">
           Make your own ten
         </Link>
       </p>

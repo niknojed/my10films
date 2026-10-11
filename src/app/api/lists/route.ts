@@ -2,7 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { SAVES_PER_HOUR, siteUrl } from "@/lib/config";
 import { fail } from "@/lib/http";
 import { contentHash, creatorHash, db, newSlug } from "@/lib/server";
-import { getFilm, TmdbError } from "@/lib/tmdb";
+import { SECTION_INFO } from "@/lib/sections";
+import { getTitle, TmdbError } from "@/lib/tmdb";
 import type { Film } from "@/lib/types";
 import { parseSavePayload } from "@/lib/validate";
 
@@ -54,10 +55,12 @@ export async function POST(req: NextRequest) {
   // a list fetch titles, years and posters from TMDB again (see filmsById in lib/server.ts).
   let films: Film[];
   try {
-    films = await Promise.all(input.filmIds.map((id) => getFilm(id)));
+    const media = SECTION_INFO[input.section].media;
+    films = await Promise.all(input.filmIds.map((id) => getTitle(media, id)));
   } catch (err) {
     if (err instanceof TmdbError && err.code === "not_found") {
-      return fail(422, "unknown_film", "One of these films is no longer in the film database. Remove it and save again.");
+      const noun = input.section === "shows" ? "shows" : "films";
+      return fail(422, "unknown_film", `One of these ${noun} is no longer in the database. Remove it and save again.`);
     }
     if (err instanceof TmdbError && err.code === "not_configured") {
       console.error("lists:", err.message);
@@ -67,14 +70,19 @@ export async function POST(req: NextRequest) {
     return fail(502, "upstream", "The film database is not answering. Your list is still here. Try again in a minute.");
   }
 
+  // Shows add their section to the hash. Films leave it out, so a film list saved before Shows existed
+  // still matches itself and returns its existing link.
   const hash = contentHash([
     creator,
+    ...(input.section === "shows" ? ["shows"] : []),
     input.name,
     input.quote,
     input.layout,
     input.theme,
     input.listType,
     input.genre,
+    // Decade lists add their decade. Other lists leave it out, so their earlier hashes still match.
+    ...(input.decade !== null ? [input.decade] : []),
     input.filmIds,
   ]);
 
@@ -87,6 +95,8 @@ export async function POST(req: NextRequest) {
       p_theme: input.theme,
       p_list_type: input.listType,
       p_genre: input.genre,
+      p_media_type: SECTION_INFO[input.section].media,
+      p_decade: input.decade,
       p_content_hash: hash,
       p_creator_hash: creator,
       p_films: films,

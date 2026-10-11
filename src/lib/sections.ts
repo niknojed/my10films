@@ -35,9 +35,9 @@ export const SECTION_INFO: Record<Section, SectionInfo> = {
   },
 };
 
-/** The list types each section offers. Shows have no genres. */
+/** The list types each section offers. Shows have no genres or decades. */
 export const SECTION_LIST_TYPES: Record<Section, readonly ListType[]> = {
-  films: ["made", "alltime", "genre"],
+  films: ["made", "alltime", "genre", "decade"],
   shows: ["made", "alltime"],
 };
 

@@ -1,5 +1,5 @@
 import { MAX_FILMS, SITE_NAME } from "./config";
-import { headingFor } from "./listType";
+import { displayCase, headingFor } from "./listType";
 import { SECTION_INFO, type Section } from "./sections";
 import type { Film, Format, Layout, ListType, Theme } from "./types";
 
@@ -29,7 +29,8 @@ export const POSTER_THEMES: Record<Theme, ThemeColors> = {
 /** Shows keep each theme's ground and type and swap the accent for broadcast blue. */
 const SHOWS_ACCENT: Record<Theme, string> = { silver: "#1D4F91", slate: "#9EC1FF", velvet: "#9EC1FF" };
 
-function themeFor(theme: Theme, section: Section): ThemeColors {
+/** Poster colors for a theme in a section. Preview images use these too, so they match the poster. */
+export function themeFor(theme: Theme, section: Section = "films"): ThemeColors {
   const base = POSTER_THEMES[theme];
   return section === "shows" ? { ...base, accent: SHOWS_ACCENT[theme] } : base;
 }
@@ -264,6 +265,7 @@ export interface PosterInput {
   theme: Theme;
   listType: ListType;
   genre: string | null;
+  decade?: number | null;
   /** Defaults to films. Shows get the blue accent, faint scan lines and their own footer. */
   section?: Section;
 }
@@ -323,7 +325,7 @@ export function drawPoster(canvas: HTMLCanvasElement, input: PosterInput, art: A
   }
 
   // header
-  const heading = headingFor(input.listType, input.genre, input.name, section);
+  const heading = headingFor(input.listType, input.genre, input.name, section, input.decade ?? null);
   const es = feed ? 30 : 23;
   ctx.textBaseline = "alphabetic";
   ctx.textAlign = "left";
@@ -331,14 +333,14 @@ export function drawPoster(canvas: HTMLCanvasElement, input: PosterInput, art: A
   ctx.font = `500 ${es}px ${FONT_MONO}`;
   tracking(ctx, es * 0.14);
   y += es;
-  ctx.fillText(ellipsize(ctx, heading.eyebrow.toUpperCase(), cw - es * 5), M, y);
+  ctx.fillText(ellipsize(ctx, displayCase(heading.eyebrow), cw - es * 5), M, y);
   ctx.textAlign = "right";
   ctx.fillStyle = T.mute;
   ctx.fillText("01—10", W - M, y);
   ctx.textAlign = "left";
   tracking(ctx, 0);
 
-  const head = heading.big.toUpperCase();
+  const head = displayCase(heading.big);
   let hs = feed ? 230 : 170;
   ctx.font = `900 ${hs}px ${FONT_DISPLAY}`;
   while (hs > 60 && ctx.measureText(head).width > cw) {

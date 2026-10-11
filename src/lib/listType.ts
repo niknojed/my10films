@@ -6,11 +6,18 @@ export const LIST_TYPE_LABELS: Record<ListType, string> = {
   made: "That made me",
   alltime: "All-time ten",
   genre: "By genre",
+  decade: "By decade",
 };
 
 /** The large line of the page heading, under "My 10 Films" or "My 10 Shows". */
-export function pageBigLine(listType: ListType, genre: string | null, section: Section = "films"): string {
+export function pageBigLine(
+  listType: ListType,
+  genre: string | null,
+  section: Section = "films",
+  decade: number | null = null,
+): string {
   if (listType === "alltime") return "All-time ten";
+  if (listType === "decade") return decade ? `${decade}s` : "By decade";
   if (listType === "genre") return genre ? genreLabel(section, genre) : "By genre";
   return "That made me";
 }
@@ -26,9 +33,19 @@ export interface Heading {
  * The poster and share-page heading for a list type. With a name the name is the large line;
  * without one the type itself is ("My top ten / 80s Action").
  */
-export function headingFor(listType: ListType, genre: string | null, name: string, section: Section = "films"): Heading {
+export function headingFor(
+  listType: ListType,
+  genre: string | null,
+  name: string,
+  section: Section = "films",
+  decade: number | null = null,
+): Heading {
   const n = name.trim();
   switch (listType) {
+    case "decade": {
+      const d = decade ? `${decade}s` : "Decade";
+      return n ? { eyebrow: `The top ten ${d} ${SECTION_INFO[section].noun} of`, big: n } : { eyebrow: "My top ten", big: d };
+    }
     case "alltime":
       return n ? { eyebrow: "The all-time top ten of", big: n } : { eyebrow: "My top ten", big: "All-time" };
     case "genre":
@@ -41,9 +58,19 @@ export function headingFor(listType: ListType, genre: string | null, name: strin
 }
 
 /** One sentence for page titles and the share sheet, such as "The top ten horror films of @k". */
-export function headingLine(listType: ListType, genre: string | null, name: string, section: Section = "films"): string {
+export function headingLine(
+  listType: ListType,
+  genre: string | null,
+  name: string,
+  section: Section = "films",
+  decade: number | null = null,
+): string {
   const n = name.trim();
   switch (listType) {
+    case "decade": {
+      const d = `${decade ? `${decade}s` : "decade"} ${SECTION_INFO[section].noun}`;
+      return n ? `The top ten ${d} of ${n}` : `My top ten ${d}`;
+    }
     case "alltime":
       return n ? `The all-time top ten of ${n}` : "My all-time top ten";
     case "genre":
@@ -61,4 +88,12 @@ export function headingLine(listType: ListType, genre: string | null, name: stri
 export function previewBigSize(text: string, width = 348, max = 132, min = 56): number {
   const longest = Math.max(1, ...text.split(/\s+/).map((w) => w.length));
   return Math.max(min, Math.min(max, Math.floor(width / (longest * 0.56))));
+}
+
+/**
+ * Capitals for headings, keeping a decade's "s" lowercase: "1980s", never "1980S". Use it wherever a
+ * heading is capitalized, in canvas and preview images and in place of CSS uppercase.
+ */
+export function displayCase(text: string): string {
+  return text.toUpperCase().replace(/(\d0)S\b/g, "$1s");
 }

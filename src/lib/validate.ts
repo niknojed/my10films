@@ -1,14 +1,17 @@
-import { LAYOUTS, LIST_TYPES, MAX_FILMS, NAME_MAX, QUOTE_MAX, THEMES } from "./config";
-import { isCategoryId } from "./categories";
+import { LAYOUTS, MAX_FILMS, NAME_MAX, QUOTE_MAX, THEMES } from "./config";
+import { isCategoryId, isDecade } from "./categories";
+import { isSection, SECTION_LIST_TYPES, type Section } from "./sections";
 import type { Layout, ListType, Theme } from "./types";
 
 export interface SavePayload {
+  section: Section;
   name: string;
   quote: string;
   layout: Layout;
   theme: Theme;
   listType: ListType;
   genre: string | null;
+  decade: number | null;
   filmIds: number[];
 }
 
@@ -37,16 +40,23 @@ export function parseSavePayload(body: unknown): Parsed<SavePayload> {
   if (typeof theme !== "string" || !(THEMES as readonly string[]).includes(theme)) {
     return { ok: false, message: "Unknown theme." };
   }
+  // Missing means films, so a page loaded before Shows existed can still save.
+  const section = b.section ?? "films";
+  if (!isSection(section)) return { ok: false, message: "Unknown section." };
   // Missing means "made", so a page loaded before list types existed can still save.
   const listType = b.listType ?? "made";
-  if (typeof listType !== "string" || !(LIST_TYPES as readonly string[]).includes(listType)) {
+  if (typeof listType !== "string" || !(SECTION_LIST_TYPES[section] as readonly string[]).includes(listType)) {
     return { ok: false, message: "Unknown list type." };
   }
   let genre: string | null = null;
   if (listType === "genre") {
-    // Share links exist for films only. Shows come with a later migration.
-    if (!isCategoryId("films", b.genre)) return { ok: false, message: "Choose a category for this list." };
+    if (!isCategoryId(section, b.genre)) return { ok: false, message: "Choose a category for this list." };
     genre = b.genre;
+  }
+  let decade: number | null = null;
+  if (listType === "decade") {
+    if (!isDecade(b.decade)) return { ok: false, message: "Choose a decade for this list." };
+    decade = b.decade;
   }
   const ids = b.filmIds;
   if (!Array.isArray(ids) || ids.length !== MAX_FILMS) {
@@ -63,12 +73,14 @@ export function parseSavePayload(body: unknown): Parsed<SavePayload> {
   return {
     ok: true,
     value: {
+      section,
       name: cleanText(b.name, NAME_MAX),
       quote: cleanText(b.quote, QUOTE_MAX),
       layout: layout as Layout,
       theme: theme as Theme,
       listType: listType as ListType,
       genre,
+      decade,
       filmIds,
     },
   };

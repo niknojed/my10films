@@ -13,7 +13,7 @@ A site where people pick the ten films that made them, rank them, and save one p
 npm install
 npm run dev
 npm run typecheck
-npm test        # 34 unit tests: validation, poster grids, list state, client IP, list types
+npm test        # 56 unit tests: validation, poster grids, list state, client IP, list types, categories, decades
 npm run build
 ```
 
@@ -24,11 +24,11 @@ npm run build
 - `src/components/Search.tsx`: debounced search against `/api/search`, keyboard navigation, error and retry states. Enter pressed before results arrive is held and applied when results for that exact query land.
 - `src/components/Board.tsx`: ranked slots. Pointer drag (whole card with a mouse, grip on touch), arrow buttons, focus kept after moves, live-region announcements.
 - `src/components/PosterPanel.tsx`: canvas preview, format, layout and theme controls, PNG export (share sheet on touch, download elsewhere), share-link creation. Expand opens a native `<dialog>`: full screen on phones, poster beside the options from 64rem. The preview and options render in one place at a time, so the canvas remounts and redraws on open and close.
-- `src/components/ListTypeChips.tsx` and `src/lib/listType.ts`: list types `made` (the default), `alltime` and `genre`. Genre lists pick a curated category from `src/lib/categories.ts` (films only: 80s Action, Blaxploitation, Horror Before 2000, Indie, Rom-Coms, Sci-Fi). Shows have no genres (decided 2026-10-10): `SECTION_LIST_TYPES` in `src/lib/sections.ts` gives Shows only That made me and All-time ten, and a saved Shows list on `genre` falls back to `made`. Blaxploitation uses TMDB's keyword "blaxploitation cinema"; there is no keyword named plain "blaxploitation". Lists saved before categories keep their TMDB genre name, which `isStoredGenre` still accepts for display only. `headingFor` gives the poster and share-page heading; `headingLine` gives the sentence for titles and the share sheet. A genre list can't be saved or shared until a genre is chosen.
+- `src/components/ListTypeChips.tsx` and `src/lib/listType.ts`: list types `made` (the default), `alltime` and `genre`. Genre lists pick a curated category from `src/lib/categories.ts` (films only: 80s Action, Blaxploitation, Horror Before 2000, Indie, Rom-Coms, Sci-Fi). Shows have no genres or decades (decided 2026-10-10 and 2026-10-11): `SECTION_LIST_TYPES` in `src/lib/sections.ts` gives Shows only That made me and All-time ten, and a saved Shows list on another type falls back to `made`. Films also have By decade (`decade` lists, 1950s to 2020s, `DECADES` in `categories.ts`). A decade is a search scope with the same shape as a category (`decadeCategory`, resolved by `scopeById` as `cat=1980s`), so search, browse and Search all work unchanged. Headings are capitalized with `displayCase`, which keeps a decade's "s" lowercase ("1980s"); use it, not CSS uppercase, for any heading that can hold a decade. On phones the four film list-type chips form a 2 × 2 grid. Blaxploitation uses TMDB's keyword "blaxploitation cinema"; there is no keyword named plain "blaxploitation". Lists saved before categories keep their TMDB genre name, which `isStoredGenre` still accepts for display only. `headingFor` gives the poster and share-page heading; `headingLine` gives the sentence for titles and the share sheet. A genre list can't be saved or shared until a genre is chosen.
 - `src/lib/poster.ts`: canvas renderer. Layouts: feed + top billing = no. 1 large beside a 3×3; feed + equal = 5×2; story + top = no. 1 half-width, 2×2 beside it, a row of 5 below; story + equal = rows of 3, 3, 4. Films with no TMDB poster get a generated title card.
 - `src/lib/useArt.ts`: loads poster images for canvas. Direct from TMDB with CORS first, then the `/api/img` same-origin pass-through.
 - `src/app/api/search`: TMDB search proxy for both sections (`section=films|shows`). With `cat=<category id>` results stay inside the category (genres and years from the search results; keyword categories check each title's keywords, capped at 15 lookups), and an empty query browses the category through TMDB discover. `all=1` searches everything. The token stays on the server.
-- Sections: `src/lib/sections.ts`. `/` is Films, `/shows` is Shows, switched by `SectionSwitch`. Each section keeps its own list and theme in storage (`my10films.v1`, `my10films.shows.v1`). `data-section` on `<html>` (set by the layout script, kept by `Maker`) gives Shows a broadcast-blue accent and rounder frames; the poster adds faint scan lines and a "My 10 Shows" footer. Share links are films-only until the database stores a media type.
+- Sections: `src/lib/sections.ts`. `/` is Films, `/shows` is Shows, switched by `SectionSwitch`. Each section keeps its own list and theme in storage (`my10films.v1`, `my10films.shows.v1`). `data-section` on `<html>` (set by the layout script, kept by `Maker`) gives Shows a broadcast-blue accent and rounder frames; the poster adds faint scan lines and a "My 10 Shows" footer. Share links work for both: `lists.media_type` ('movie' or 'tv') tells `getSharedList` which TMDB endpoint to use (`getTitle`), and share pages wear the Shows accent through `PageTheme`'s `section`. `/shows` has its own preview image (`src/app/shows/opengraph-image.tsx`, drawn by `src/lib/sectionImage.tsx`).
 - `Maker` renders the page heading: "My 10 Films" or "My 10 Shows" small, then the list type large ("That made me", "All-time ten", or the category), as one `<h1>`.
 - `src/app/api/lists`: POST, saves a shared list. Checks same origin, caps the body at 4 KB, and checks every film id against TMDB before saving. Calls the `create_list` RPC.
 - `src/app/api/img`: poster pass-through. Validates path and size and stores nothing.
@@ -40,6 +40,7 @@ npm run build
 - `supabase/migrations/0001_init.sql`: `lists` and `list_films` tables. RLS is on with no policies, so only the service role can read or write. Two RPCs:
   - `create_list`: atomic save. A repeat of the same list by the same person returns its existing slug. 10 saves an hour per hashed IP.
   - `most_picked`: counts distinct people per film.
+- `supabase/migrations/0004_shows_and_decades.sql`: adds `lists.media_type` and `lists.decade`, allows the `decade` list type, forbids genre or decade lists for shows, and recreates `create_list` (two more defaulted parameters) and `most_picked` (per media type). Safe to run twice; checked against a local Postgres 14 with all four migrations in order.
 - `supabase/migrations/0003_list_types.sql`: adds `lists.list_type` (default `made`) and `lists.genre`, and recreates `create_list` with two defaulted parameters. Run it before deploying code that reads or sends list types.
 - `supabase/migrations/0002_store_ids_only.sql`: `list_films` keeps only `tmdb_id` and `position`. `most_picked` returns `(tmdb_id, picks)`.
 - `filmsById` in `src/lib/server.ts`: share pages, preview images and Most picked fetch titles, years and posters from TMDB by id, through `getFilm`'s 1-day fetch cache. A film TMDB has removed shows as a "No longer listed" title card on share pages and is dropped from Most picked.
@@ -94,7 +95,6 @@ npm run build
   `git -c credential.helper= -c 'credential.helper=!f(){ echo username=niknojed; echo "password=$(gh auth token --user niknojed)"; }; f' push origin main`
 - Don't switch the active `gh` account.
 - Don't change the global git credential config. Other repos on this Mac depend on it.
-- `my10films.zip` in the folder is a leftover delivery copy, ignored through `.git/info/exclude`, and safe to delete.
 
 ## Working preferences for this project
 
@@ -102,3 +102,4 @@ npm run build
 - **Design:** keep the existing tokens in `src/app/globals.css` and the type system: Big Shoulders Display, Schibsted Grotesk, DM Mono.
 - **Copy:** plain and expert-to-expert. No marketing language. Avoid the "it's not X, it's Y" construction.
 - **Decisions:** when there's a real fork, name both paths, the tradeoff, and a recommended pick.
+

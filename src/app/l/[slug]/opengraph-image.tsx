@@ -1,10 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ImageResponse } from "next/og";
-import { SITE_NAME } from "@/lib/config";
 import { posterUrl } from "@/lib/img";
-import { headingFor, previewBigSize } from "@/lib/listType";
-import { POSTER_THEMES } from "@/lib/poster";
+import { displayCase, headingFor, previewBigSize } from "@/lib/listType";
+import { themeFor } from "@/lib/poster";
+import { SECTION_INFO } from "@/lib/sections";
 import { getSharedList } from "@/lib/server";
 import type { Theme } from "@/lib/types";
 
@@ -36,10 +36,11 @@ export default async function Image({ params }: { params: Promise<{ slug: string
     ...(display ? [{ name: "Display", data: display, weight: 900 as const, style: "normal" as const }] : []),
     ...(mono ? [{ name: "Mono", data: mono, weight: 500 as const, style: "normal" as const }] : []),
   ];
-  const heading = list ? headingFor(list.listType, list.genre, list.name) : headingFor("made", null, "");
-  const name = heading.big.toUpperCase();
+  const section = list?.section ?? "films";
+  const heading = list ? headingFor(list.listType, list.genre, list.name, section, list.decade) : headingFor("made", null, "");
+  const name = displayCase(heading.big);
   const theme: Theme = list?.theme ?? "silver";
-  const C = { ...POSTER_THEMES[theme], card: CARD[theme] };
+  const C = { ...themeFor(theme, section), card: CARD[theme] };
   const films = list?.films ?? [];
   const W = 132;
   const H = 198;
@@ -60,7 +61,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
       >
         <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", width: 348 }}>
           <div style={{ display: "flex", flexDirection: "column" }}>
-            <div style={{ fontSize: 20, letterSpacing: 3, color: C.accent }}>{heading.eyebrow.toUpperCase()}</div>
+            <div style={{ fontSize: 20, letterSpacing: 3, color: C.accent }}>{displayCase(heading.eyebrow)}</div>
             <div
               style={{
                 fontFamily: "Display",
@@ -73,7 +74,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
               {name}
             </div>
           </div>
-          <div style={{ fontSize: 18, letterSpacing: 3, color: C.mute }}>{SITE_NAME.toUpperCase()}</div>
+          <div style={{ fontSize: 18, letterSpacing: 3, color: C.mute }}>{SECTION_INFO[section].kicker.toUpperCase()}</div>
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12, width: 5 * W + 4 * 12, alignContent: "center" }}>
           {films.map((film, i) => (

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type Dispatch } from "react";
-import { CATEGORIES } from "@/lib/categories";
+import { CATEGORIES, DECADES } from "@/lib/categories";
 import { LIST_TYPE_LABELS } from "@/lib/listType";
 import { SECTION_LIST_TYPES, type Section } from "@/lib/sections";
 import type { MakerAction } from "@/lib/store";
@@ -11,11 +11,15 @@ interface Props {
   section: Section;
   listType: ListType;
   genre: string | null;
+  decade: number | null;
   dispatch: Dispatch<MakerAction>;
 }
 
-/** What kind of ten this is, then the category for "By genre". Radios styled as chips, so arrow keys move between them. */
-export default function ListTypeChips({ section, listType, genre, dispatch }: Props) {
+/**
+ * What kind of ten this is, then the category for "By genre" or the decade for "By decade". Radios
+ * styled as chips, so arrow keys move between them. Only one second row shows at a time.
+ */
+export default function ListTypeChips({ section, listType, genre, decade, dispatch }: Props) {
   const categoryRow = useRef<HTMLFieldSetElement>(null);
   const categories = CATEGORIES[section];
 
@@ -29,11 +33,11 @@ export default function ListTypeChips({ section, listType, genre, dispatch }: Pr
     const r = chip.getBoundingClientRect();
     if (r.left >= box.left && r.right <= box.right) return;
     row.scrollLeft += r.left < box.left ? r.left - box.left : r.right - box.right;
-  }, [genre, listType]);
+  }, [genre, decade, listType]);
 
   return (
     <div className="grid gap-3">
-      <fieldset className="chips">
+      <fieldset className="chips chips-types">
         <legend className="sr-only">List type</legend>
         {SECTION_LIST_TYPES[section].map((t) => (
           <label key={t}>
@@ -44,8 +48,8 @@ export default function ListTypeChips({ section, listType, genre, dispatch }: Pr
               checked={listType === t}
               onChange={() => {
                 dispatch({ type: "listType", value: t });
-                // Picking "By genre" without a category yet moves focus to the categories.
-                if (t === "genre" && !genre) {
+                // Picking "By genre" or "By decade" with nothing chosen yet moves focus to its row.
+                if ((t === "genre" && !genre) || (t === "decade" && !decade)) {
                   window.setTimeout(() => categoryRow.current?.querySelector<HTMLInputElement>("input")?.focus(), 0);
                 }
               }}
@@ -67,6 +71,23 @@ export default function ListTypeChips({ section, listType, genre, dispatch }: Pr
                 onChange={() => dispatch({ type: "genre", value: c.id })}
               />
               {c.label}
+            </label>
+          ))}
+        </fieldset>
+      ) : null}
+      {listType === "decade" ? (
+        <fieldset className="chips chips-sub" ref={categoryRow}>
+          <legend className="chips-legend">Decade</legend>
+          {DECADES.map((d) => (
+            <label key={d}>
+              <input
+                type="radio"
+                name={`decade-${section}`}
+                value={d}
+                checked={decade === d}
+                onChange={() => dispatch({ type: "decade", value: d })}
+              />
+              {d}s
             </label>
           ))}
         </fieldset>

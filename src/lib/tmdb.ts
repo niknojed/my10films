@@ -80,13 +80,25 @@ async function tmdb<T>(path: string, revalidate: number): Promise<T> {
   }
 }
 
-/** Canonical record for one film. Used on save so stored titles never come from the browser. */
-export async function getFilm(id: number): Promise<Film> {
-  const m = await tmdb<TmdbMovie>(`/movie/${id}?language=en-US`, 86400);
-  if (m.adult === true) throw new TmdbError("not_found", "TMDB has no such film.");
-  const f = toFilm(m);
-  if (!f) throw new TmdbError("not_found", "TMDB has no such film.");
+/**
+ * Canonical record for one film or show. Used on save, so stored titles never come from the browser,
+ * and to show saved lists. TV records use `name` and `first_air_date`.
+ */
+export async function getTitle(media: Media, id: number): Promise<Film> {
+  const m = await tmdb<TmdbItem>(`/${media}/${id}?language=en-US`, 86400);
+  const missing = media === "tv" ? "TMDB has no such show." : "TMDB has no such film.";
+  if (m.adult === true) throw new TmdbError("not_found", missing);
+  const f = toFilm(
+    media === "tv"
+      ? { id: m.id, title: m.name, release_date: m.first_air_date, poster_path: m.poster_path }
+      : m,
+  );
+  if (!f) throw new TmdbError("not_found", missing);
   return f;
+}
+
+export function getFilm(id: number): Promise<Film> {
+  return getTitle("movie", id);
 }
 
 function toCandidate(m: TmdbItem, media: Media): Candidate | null {

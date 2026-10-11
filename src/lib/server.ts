@@ -3,8 +3,9 @@ import { createHash, createHmac, randomBytes } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { clientIp } from "./ip";
 import { MOST_PICKED_LIMIT, MOST_PICKED_MIN } from "./config";
-import { getFilm, TmdbError } from "./tmdb";
-import { isStoredGenre } from "./categories";
+import { SECTION_INFO, type Section } from "./sections";
+import { getTitle, TmdbError, type Media } from "./tmdb";
+import { isDecade, isStoredGenre } from "./categories";
 import type { Film, Layout, ListType, PickedFilm, SharedList, Theme } from "./types";
 import { isSlug } from "./validate";
 
@@ -65,8 +66,8 @@ export function contentHash(parts: unknown): string {
  * keeping their data longer than six months; getFilm's fetch cache holds each record for a day.
  * A film TMDB has since removed comes back as null. Any other TMDB failure throws.
  */
-async function filmsById(ids: number[]): Promise<Array<Film | null>> {
-  const settled = await Promise.allSettled(ids.map((id) => getFilm(id)));
+async function filmsById(ids: number[], media: Media = "movie"): Promise<Array<Film | null>> {
+  const settled = await Promise.allSettled(ids.map((id) => getTitle(media, id)));
   return settled.map((r) => {
     if (r.status === "fulfilled") return r.value;
     if (r.reason instanceof TmdbError && r.reason.code === "not_found") return null;
@@ -80,7 +81,7 @@ export async function getSharedList(slug: string): Promise<SharedList | null> {
   if (!supabase) return null;
   const { data, error } = await supabase
     .from("lists")
-    .select("slug,name,quote,layout,theme,list_type,genre,created_at,list_films(position,tmdb_id)")
+    .select("slug,name,quote,layout,theme,list_type,genre,decade,media_type,created_at,list_films(position,tmdb_id)")
     .eq("slug", slug)
     .maybeSingle();
   if (error) throw new Error(`lists read failed: ${error.message}`);
@@ -89,27 +90,36 @@ export async function getSharedList(slug: string): Promise<SharedList | null> {
     .slice()
     .sort((a, b) => a.position - b.position)
     .map((r) => r.tmdb_id);
-  // A removed film keeps its slot as a title card, so the ranking stays intact.
-  const found = await filmsById(ids);
+  // TMDB numbers films and shows separately, so the stored media type picks the right lookup.
+  const section: Section = data.media_type === "tv" ? "shows" : "films";
+  // A removed title keeps its slot as a title card, so the ranking stays intact.
+  const found = await filmsById(ids, SECTION_INFO[section].media);
   const films = ids.map((id, i) => found[i] ?? { id, title: "No longer listed", year: "", poster: null });
   return {
     slug: data.slug as string,
+    section,
     name: (data.name as string) ?? "",
     quote: (data.quote as string) ?? "",
     layout: data.layout as Layout,
     theme: data.theme as Theme,
     listType: (data.list_type as ListType) ?? "made",
-    genre: data.list_type === "genre" && isStoredGenre(data.genre) ? data.genre : null,
+    // Only films have genres.
+    genre: data.list_type === "genre" && section === "films" && isStoredGenre(data.genre) ? data.genre : null,
+    decade: data.list_type === "decade" && isDecade(data.decade) ? data.decade : null,
     films,
     createdAt: data.created_at as string,
   };
 }
 
-/** Films ranked by how many distinct people listed them. Empty until there is enough real data. */
-export async function getMostPicked(): Promise<PickedFilm[]> {
+/**
+ * Titles ranked by how many distinct people listed them, counted per section so films and shows
+ * never mix. Empty until there is enough real data.
+ */
+export async function getMostPicked(section: Section = "films"): Promise<PickedFilm[]> {
   const supabase = db();
   if (!supabase) return [];
-  const { data, error } = await supabase.rpc("most_picked", { lim: MOST_PICKED_LIMIT });
+  const media = SECTION_INFO[section].media;
+  const { data, error } = await supabase.rpc("most_picked", { lim: MOST_PICKED_LIMIT, p_media: media });
   if (error) {
     console.error("most_picked failed:", error.message);
     return [];
@@ -118,7 +128,7 @@ export async function getMostPicked(): Promise<PickedFilm[]> {
   if (rows.length < MOST_PICKED_MIN) return [];
   let films: Array<Film | null>;
   try {
-    films = await filmsById(rows.map((r) => r.tmdb_id));
+    films = await filmsById(rows.map((r) => r.tmdb_id), media);
   } catch (err) {
     console.error("most_picked: film lookup failed", err);
     return [];

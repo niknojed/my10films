@@ -9,7 +9,9 @@ export const metadata: Metadata = {
   description,
   alternates: { canonical: "/shows" },
   openGraph: { title: "My 10 Shows", description, url: "/shows" },
-  twitter: { title: "My 10 Shows", description },
+  // Setting twitter here replaces the layout's, so the large card is restated. The images come from
+  // this folder's opengraph-image and twitter-image.
+  twitter: { card: "summary_large_image", title: "My 10 Shows", description },
 };
 
 export default function Shows() {
